@@ -812,11 +812,6 @@ def encode_segment(segment, overwrite=False):
     input_file = segment.src.file_path
     output_file = os.path.join(test_config.get_video_segments_path(), segment.get_filename())
 
-    if segment.uses_10_bit():
-        ffmpeg_cmd = "ffmpeg10"
-    else:
-        ffmpeg_cmd = "ffmpeg"
-
     if overwrite:
         overwrite_spec = "-y"
     else:
@@ -912,7 +907,7 @@ def encode_segment(segment, overwrite=False):
             logger.error("unknown segment extension " + segment.ext)
 
         pass1_cmd = " ".join([
-            ffmpeg_cmd,
+            "ffmpeg",
             "-y",
             common_opts,
             video_encoder_cmd_pass1,
@@ -921,7 +916,7 @@ def encode_segment(segment, overwrite=False):
             "/dev/null"
         ])
         pass2_cmd = " ".join([
-            ffmpeg_cmd,
+            "ffmpeg",
             overwrite_spec,
             common_opts,
             video_encoder_cmd_pass2,
@@ -935,7 +930,7 @@ def encode_segment(segment, overwrite=False):
         video_encoder_cmd = _get_video_encoder_command(segment)
 
         cmd = """
-        {ffmpeg_cmd} -nostdin
+        ffmpeg -nostdin
         {overwrite_spec}
         -ss {segment.start_time} -i {input_file}
         -threads 1
@@ -951,7 +946,7 @@ def encode_segment(segment, overwrite=False):
         video_encoder_cmd = _get_video_encoder_command_crf(segment)
 
         cmd = """
-        {ffmpeg_cmd} -nostdin
+        ffmpeg -nostdin
         {overwrite_spec}
         -ss {segment.start_time} -i {input_file}
         -threads 1
