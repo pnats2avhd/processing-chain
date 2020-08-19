@@ -1,0 +1,9 @@
+output_type: sftp # or "azure", or "https"
+host: ip.adress.to.sftp.server:dataport # coolname.com:2223 for example
+port: datapart # 2223 for example
+user: username # username on sftp server
+pw: userpassword # password for sftp server user
+output_path: /footage/Bitmovin_test/output # path to where degraded videos should be stored on file server
+# azureaccount: ...
+# container: ...
+# azurekey: ...

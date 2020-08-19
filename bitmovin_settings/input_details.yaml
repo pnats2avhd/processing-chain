@@ -1,0 +1,7 @@
+input_type: sftp # or https
+host: ip.adress.to.sftp.server:dataport # coolname.com:2223 for example
+port: datapart # 2223 for example
+user: username # username on sftp server
+pw: userpassword # password for sftp server user
+input_path: /footage/Bitmovin_test/srcVid # path to SRC videos
+
