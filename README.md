@@ -2,7 +2,7 @@
 
 This is the processing chain used to generate sequences for the P.NATS Phase 2 / AHVD-AS project from ITU-T SG12 and VQEG.
 
-> ⚠️ **Note:** For this release, the versions of ffmpeg, x264, x265 and libvpx-vp9 are rather old. Later releases of this processing chain will incorporate up-to-date versions of those tools; the current software is published "as is" in order to match exactly what was used in the project.
+> ⚠️ **Note:** For this release, the versions of ffmpeg, x264, x265 and libvpx-vp9 are rather old. The [updates](https://github.com/pnats2avhd/processing-chain/tree/updates) branch uses up-to-date versions of those tools; the current software is published "as is" in order to match exactly what was used in the project.
 
 Table of contents:
 
