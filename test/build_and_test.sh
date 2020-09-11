@@ -2,7 +2,7 @@
 
 set -e
 
-cd "$(dirname $"0")/.." || exit
+cd "$(dirname "$0")"/.. || exit
 
 git -C example-databases pull 2> /dev/null || git clone --depth 1 https://github.com/pnats2avhd/example-databases.git
 
