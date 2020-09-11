@@ -30,7 +30,7 @@ Copy this path; we need it to mount it to the Docker image.
 Run the following command, and replace the `/path/to/example-databases` with the one on your system that was printed above.
 
 ```
-docker run -it \
+docker run --rm -it \
   -v /path/to/example-databases/:/proponent-databases/ processing_chain \
   python3 p00_processAll.py -c /proponent-databases/P2SXM00/P2SXM00.yaml -v
 ```
