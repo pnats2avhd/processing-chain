@@ -887,13 +887,11 @@ def encode_segment(segment, overwrite=False):
         """.format(**locals())
 
         # Rate control and other options
-        log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
-        if not os.path.isdir(log_path):
-            logger.warn("Log path " + log_path + " does not exist; will create folder.")
-            os.makedirs(log_path)
+        log_path = test_config.get_logs_path()
+
         passlogfile = os.path.join(
             log_path,
-            os.path.splitext(os.path.basename(output_file))[0]
+            'passlogfile_' + os.path.splitext(os.path.basename(output_file))[0]
         )
         video_encoder_cmd_pass1 = _get_video_encoder_command(segment, current_pass=1, total_passes=2, logfile=passlogfile)
         video_encoder_cmd_pass2 = _get_video_encoder_command(segment, current_pass=2, total_passes=2, logfile=passlogfile)
