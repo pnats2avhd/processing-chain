@@ -122,7 +122,17 @@ See  `docker/README.md` for more info.
 
 ## Acknowledgement
 
-If you use this software in your research and/or for publications, please link back to the URL of this repository.
+Here is a suggested citation in BibTeX format
+
+```BiBTex
+@misc{pnats_processing_chain,
+  author="Robitza, Werner and Lindero, David and Borer, Silvio and Satti, Shahid and Göring, Steve and Müller, Martin and Ramachandra Rao, Rakesh Rao",
+  title="Video Degradation Processing Chain",
+  year=2020,
+  url=https://github.com/pnats2avhd/processing-chain/,
+  note = "[Online; accessed 2021-04-28]"
+}
+```
 
 ## Contributors
 
