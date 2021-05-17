@@ -7,8 +7,8 @@ bcrypt==3.2.0; python_version >= "3.6" \
     --hash=sha256:81fec756feff5b6818ea7ab031205e1d323d8943d237303baca2c5f9c7846f34 \
     --hash=sha256:5b93c1726e50a93a033c36e5ca7fdcd29a5c7395af50a6892f5d9e7c6cfbfb29
 #bitmovin-python @ git+https://github.com/bitmovin/bitmovin-python.git@7340cb3dca542fa70c770ebb7a0f9acfcf1b12a4
-bufferer==0.13 \
-    --hash=sha256:fafd0e632e7ccefb7743bf214c114a37b43a4e2e5e94dbb0c55e38d75cc08f8d
+bufferer==0.20 \
+    --hash=sha256:211c5716ea0a4c170d0ba179d351db91388ece3655253f863355a868ae422bb9    
 certifi==2020.6.20; python_version >= "2.7" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" \
     --hash=sha256:8fc0819f1f30ba15bdb34cceffb9ef04d99f420f68eb75d901e9560b8749fc41 \
     --hash=sha256:5930595817496dd21bb8dc35dad090f1c2cd0adfaf21204bf6732ca5d8ee34d3
