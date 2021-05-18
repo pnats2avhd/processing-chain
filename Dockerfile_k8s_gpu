@@ -1,6 +1,9 @@
-FROM ubuntu:20.04
+#FROM ubuntu:20.04
+FROM nvidia/cuda:11.0-base
 
 ARG DEBIAN_FRONTEND="noninteractive"
+ENV NVIDIA_DRIVER_CAPABILITIES all
+ENV NVIDIA_VISIBLE_DEVICES all
 
 RUN apt-get update -qq && apt-get install -qq -y \
   autoconf \
@@ -39,7 +42,7 @@ RUN git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
 RUN cd nv-codec-headers && make install
 
 
-COPY ./docker/install_ffmpeg.sh /install_ffmpeg.sh
+COPY ./docker/install_ffmpeg_gpu.sh /install_ffmpeg.sh
 RUN chmod +x /install_ffmpeg.sh && \
   /install_ffmpeg.sh && \
   cp /root/bin/ffmpeg /usr/local/bin/ffmpeg && \
