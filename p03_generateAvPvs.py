@@ -70,12 +70,13 @@ def run(cli_args, test_config=None):
     # aggregate/decode in parallel
     logger.info("will aggregate " + str(len(pvs_to_complete)) + " PVSes")
     cmd_list = []
+    pvs_commands = {}
 
     # concatenate segments if the test type is "long"
     if test_config.is_long():
         cmd_runner_concat = cmd_utils.ParallelRunner(cli_args.parallelism)
 
-        pvs_commands = {}
+
 
         for pvs in pvs_to_complete:
             pvs_commands[pvs.pvs_id] = []
@@ -139,48 +140,48 @@ def run(cli_args, test_config=None):
                     os.remove(seg.get_tmp_path())
 
         # add stalling if needed
-        pvs_with_buffering = [pvs for pvs in pvs_to_complete if pvs.has_buffering()]
-        cmd_runner_add_buffer = cmd_utils.ParallelRunner(cli_args.parallelism)
-        if len(pvs_with_buffering):
-            logger.info("will add stalling to " + str(len(pvs_with_buffering)) + " PVSes")
-            for pvs in pvs_with_buffering:
-                input_file = pvs.get_avpvs_wo_buffer_file_path()
-                output_file = pvs.get_avpvs_file_path()
+        # pvs_with_buffering = [pvs for pvs in pvs_to_complete if pvs.has_buffering()]
+        # cmd_runner_add_buffer = cmd_utils.ParallelRunner(cli_args.parallelism)
+        # if len(pvs_with_buffering):
+        #     logger.info("will add stalling to " + str(len(pvs_with_buffering)) + " PVSes")
+        #     for pvs in pvs_with_buffering:
+        #         input_file = pvs.get_avpvs_wo_buffer_file_path()
+        #         output_file = pvs.get_avpvs_file_path()
 
-                bufferstring = str(pvs.get_buff_events_media_time()).replace(' ', '')
+        #         bufferstring = str(pvs.get_buff_events_media_time()).replace(' ', '')
 
-                pix_fmt = pvs.get_pix_fmt_for_avpvs()
+        #         pix_fmt = pvs.get_pix_fmt_for_avpvs()
 
-                if cli_args.force:
-                    overwrite_spec = "-f"
-                else:
-                    overwrite_spec = ""
+        #         if cli_args.force:
+        #             overwrite_spec = "-f"
+        #         else:
+        #             overwrite_spec = ""
 
-                cmd = 'bufferer -i {input_file} -o {output_file} -b {bufferstring} --force-framerate --black-frame' \
-                      '-v ffv1 -a pcm_s16le -x {pix_fmt} -s {cli_args.spinner_path} {overwrite_spec}'.format(**locals())
-                cmd_name = str(pvs) + ' buffering'
+        #         cmd = 'bufferer -i {input_file} -o {output_file} -b {bufferstring} --force-framerate --black-frame' \
+        #               '-v ffv1 -a pcm_s16le -x {pix_fmt} -s {cli_args.spinner_path} {overwrite_spec}'.format(**locals())
+        #         cmd_name = str(pvs) + ' buffering'
 
-                cmd_runner_add_buffer.add_cmd(
-                    cmd,
-                    name=str(cmd_name)
-                )
-                pvs_commands[pvs.pvs_id].append(cmd)
+        #         cmd_runner_add_buffer.add_cmd(
+        #             cmd,
+        #             name=str(cmd_name)
+        #         )
+        #         pvs_commands[pvs.pvs_id].append(cmd)
 
-        if cli_args.dry_run:
-            cmd_runner_add_buffer.log_commands()
-            sys.exit(0)
-        else:
-            for pvs in pvs_to_complete:
-                write_to_p03_logfile(pvs, pvs_commands[pvs.pvs_id])
+        # if cli_args.dry_run:
+        #     cmd_runner_add_buffer.log_commands()
+        #     sys.exit(0)
+        # else:
+        #     for pvs in pvs_to_complete:
+        #         write_to_p03_logfile(pvs, pvs_commands[pvs.pvs_id])
 
-        cmd_runner_add_buffer.run_commands()
+        # cmd_runner_add_buffer.run_commands()
 
-        if cli_args.remove_intermediate:
-            logger.info("removing " + str(len(pvs_with_buffering)) + " intermediate video files")
-            for pvs_name in pvs_with_buffering:
-                os.remove(pvs.get_avpvs_wo_buffer_file_path())
+        # if cli_args.remove_intermediate:
+        #     logger.info("removing " + str(len(pvs_with_buffering)) + " intermediate video files")
+        #     for pvs_name in pvs_with_buffering:
+        #         os.remove(pvs.get_avpvs_wo_buffer_file_path())
 
-    # Only run decoding if the test type is "short", only one segment assumed
+    # For "short" tests, only one segment is assumed. Can still have freezing/stalling events.
     else:
         cmd_runner = cmd_utils.ParallelRunner(cli_args.parallelism)
         for pvs in pvs_to_complete:
@@ -203,6 +204,58 @@ def run(cli_args, test_config=None):
             return test_config
 
         cmd_runner.run_commands()
+
+    # add freezing or rebuffering/stalling
+    pvs_with_buffering = [pvs for pvs in pvs_to_complete if pvs.has_buffering()]
+    cmd_runner_add_buffer = cmd_utils.ParallelRunner(cli_args.parallelism)
+    if len(pvs_with_buffering):
+        logger.info("will add stalling to " + str(len(pvs_with_buffering)) + " PVSes")
+        for pvs in pvs_with_buffering:
+            if pvs.pvs_id not in pvs_commands:
+                pvs_commands[pvs.pvs_id] = []
+            input_file = pvs.get_avpvs_wo_buffer_file_path()
+            output_file = pvs.get_avpvs_file_path()
+
+            # make sure this is ok for both cases
+            bufferstring = str(pvs.get_buff_events_media_time()).replace(' ', '')
+
+            pix_fmt = pvs.get_pix_fmt_for_avpvs()
+
+            if cli_args.force:
+                overwrite_spec = "-f"
+            else:
+                overwrite_spec = ""
+
+            # switch between freezing/skipping or stalling?
+            if pvs.has_framefreeze():
+                stalling_type_options = '-e --skipping'
+            else:
+                stalling_type_options = '-s {cli_args.spinner_path}'.format(**locals())
+
+            cmd = 'bufferer -i {input_file} -o {output_file} -b {bufferstring} --force-framerate --black-frame' \
+                  ' -v ffv1 -a pcm_s16le -x {pix_fmt} {stalling_type_options} {overwrite_spec}'.format(**locals())
+            cmd_name = str(pvs) + ' buffering'
+
+            cmd_runner_add_buffer.add_cmd(
+                cmd,
+                name=str(cmd_name)
+            )
+            pvs_commands[pvs.pvs_id].append(cmd)
+
+    if cli_args.dry_run:
+        cmd_runner_add_buffer.log_commands()
+        sys.exit(0)
+    else:
+        for pvs in pvs_to_complete:
+            if pvs.pvs_id in pvs_commands:
+                write_to_p03_logfile(pvs, pvs_commands[pvs.pvs_id])
+
+    cmd_runner_add_buffer.run_commands()
+
+    if cli_args.remove_intermediate:
+        logger.info("removing " + str(len(pvs_with_buffering)) + " intermediate video files")
+        for pvs_name in pvs_with_buffering:
+            os.remove(pvs.get_avpvs_wo_buffer_file_path())
 
     return test_config
 

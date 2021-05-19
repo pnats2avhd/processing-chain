@@ -975,7 +975,13 @@ def create_avpvs_short(pvs, overwrite=False, scale_avpvs_tosource=False):
     coding_width = test_config.post_processings[0].coding_width
     coding_height = test_config.post_processings[0].coding_height
 
-    output_file = pvs.get_avpvs_file_path()
+    # output_file = pvs.get_avpvs_file_path()
+
+    if pvs.has_buffering():
+        output_file = pvs.get_avpvs_wo_buffer_file_path()
+    else:
+        output_file = pvs.get_avpvs_file_path()
+
     if scale_avpvs_tosource:
         src_framerate = pvs.src.get_fps()
     else:

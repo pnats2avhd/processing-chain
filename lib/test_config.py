@@ -144,6 +144,9 @@ class Pvs:
     def has_stalling(self):
         return self.has_buffering()
 
+    def has_framefreeze(self):
+        return self.hrc.has_framefreeze()
+
     def get_buff_events_media_time(self):
         """
         Return the buff events in the format required for .buff files in media time
@@ -235,7 +238,8 @@ class Hrc:
         self.event_list = event_list
 
         for event in self.event_list:
-            if event.event_type == "stall" or event.event_type == "youtube":
+            # if event.event_type == "stall" or event.event_type == "youtube"
+            if event.event_type in ["stall", "freeze", "youtube"]:
                 continue
 
             video_codec = event.quality_level.video_codec
@@ -248,10 +252,10 @@ class Hrc:
                 sys.exit(1)
 
         # check the event list length for consistency
-        if self.test_config.type == "short":
-            if len(self.event_list) > 1 or self.event_list[0].event_type == "stall":
-                logger.error("Exactly one event of type 'quality' is allowed for short tests, please fix HRC " + self.hrc_id)
-                sys.exit(1)
+        # if self.test_config.type == "short":
+        #     if len(self.event_list) > 1 or self.event_list[0].event_type == "stall":
+        #         logger.error("Exactly one event of type 'quality' is allowed for short tests, please fix HRC " + self.hrc_id)
+        #         sys.exit(1)
 
         # add segment duration, if not, we are in a short test so it does
         # not matter -- in that case, it will be taken from first (and only) event
@@ -259,8 +263,8 @@ class Hrc:
             self.segment_duration = int(segment_duration)
         elif segment_duration is None:
             first_event = self.event_list[0]
-            if first_event.event_type == "stall":
-                logger.error("Tried to get segment duration from the first event in HRC " + self.hrc_id + ", but it was a stalling event. This should not happen in a long test, since you need to specify a default segmentDuration for the entire test.")
+            if first_event.event_type in ["stall", "freeze"]:
+                logger.error("Tried to get segment duration from the first event in HRC " + self.hrc_id + ", but it was a stalling/freezing event. This should not happen in a long test, since you need to specify a default segmentDuration for the entire test.")
                 sys.exit(1)
             self.segment_duration = first_event.duration
         elif segment_duration == "src_duration":
@@ -278,9 +282,16 @@ class Hrc:
         if self.has_buffering():
             self.buffer_events = self.get_buff_events_media_time()
 
+    # tests for both buffering and frame freezes
     def has_buffering(self):
         for event in self.event_list:
-            if event.event_type == "stall":
+            if event.event_type in ["stall", "freeze"]:
+                return True
+        return False
+
+    def has_framefreeze(self):
+        for event in self.event_list:
+            if event.event_type == "freeze":
                 return True
         return False
 
@@ -292,7 +303,14 @@ class Hrc:
         Return the buff events in the format required for .buff files in wallclock time
         """
         buff_events = []
-        if self.has_buffering():
+
+        if self.has_framefreeze():
+            for event in self.event_list:
+                if event.event_type == "freeze":
+                    buff_events.append(event.duration)
+            buff_events = sorted(buff_events)
+
+        elif self.has_buffering():
             total_media_dur = 0
             for event in self.event_list:
                 if event.event_type == "stall":
@@ -300,6 +318,7 @@ class Hrc:
                     buff_events.append([total_media_dur, stall_dur])
                 else:
                     total_media_dur += event.duration
+
         return buff_events
 
     def get_long_hrc_duration(self):
@@ -327,7 +346,7 @@ class Hrc:
         max_height = 0
 
         for event in self.event_list:
-            if event.event_type == "stall":
+            if event.event_type in ["stall", "freeze"]:
                 continue
             width = event.quality_level.width
             height = event.quality_level.height
@@ -582,6 +601,8 @@ class Event:
             if self.event_type == "stall":
                 # MMuel edited due to buffering with non-integer length
                 self.duration = float(duration)
+            elif self.event_type == "freeze":
+                self.duration = duration
             else:
                 if not float(duration).is_integer():
                     logger.error("All non-stalling events must have an integer duration, but you specified one with " + str(duration))
@@ -1275,6 +1296,9 @@ class TestConfig:
                         quality_level = self.quality_levels[event_data[0]]
                     elif 'stall' in event_data[0]:
                         event_type = 'stall'
+                        quality_level = None
+                    elif 'freeze' in event_data[0]:
+                        event_type = 'freeze'
                         quality_level = None
                     else:
                         logger.error("Wrong event type: " + str(event_data[0]) + ", must be quality level ID or 'stall'")
