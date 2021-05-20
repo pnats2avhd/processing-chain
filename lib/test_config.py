@@ -246,8 +246,8 @@ class Hrc:
             encoder = self.video_coding.encoder
 
             if (video_codec == "vp9" and encoder != "libvpx-vp9" and encoder not in self.test_config.ONLINE_CODERS) \
-               or (video_codec == "h265" and encoder != "libx265" and encoder not in self.test_config.ONLINE_CODERS) \
-               or (video_codec == "h264" and encoder != "libx264" and encoder not in self.test_config.ONLINE_CODERS):
+               or (video_codec == "h265" and encoder not in ["libx265", "hevc_nvenc"] and encoder not in self.test_config.ONLINE_CODERS) \
+               or (video_codec == "h264" and encoder not in ["libx264", "h264_nvenc"] and encoder not in self.test_config.ONLINE_CODERS):
                 logger.error("In HRC " + self.hrc_id + ", quality level " + str(event.quality_level) + " and video coding " + str(self.video_coding) + " specify different codecs")
                 sys.exit(1)
 
@@ -715,6 +715,7 @@ class Coding:
         self.coding_type = data['type']
 
         self.is_online = None
+        self.crf = None
 
         if self.coding_type == "video":
             self.encoder = data['encoder']
@@ -737,16 +738,21 @@ class Coding:
                         sys.exit(1)
                 else:
                     if 'crf' in data.keys():
-                        crf = int(data['crf'])
-                        if self.encoder == "libvpx-vp9" and crf not in range(0, 63):
-                            logger.error("only crf values between 0 to 63 allowed, error in coding " + self.coding_id)
-                            sys.exit(1)
-                        elif self.encoder in ["libx264", "libx264"] and crf not in range(0, 51):
-                            logger.error("only crf values between 0 to 51 allowed, error in coding " + self.coding_id)
-                            sys.exit(1)
-                        else:
-                            self.crf = crf
-                            self.passes = None
+
+                        self.crf = data['crf']
+                        self.passes = None
+
+
+                        # crf = int(data['crf'])
+                        # if self.encoder == "libvpx-vp9" and crf not in range(0, 63):
+                        #     logger.error("only crf values between 0 to 63 allowed, error in coding " + self.coding_id)
+                        #     sys.exit(1)
+                        # elif self.encoder in ["libx264", "libx264"] and crf not in range(0, 51):
+                        #     logger.error("only crf values between 0 to 51 allowed, error in coding " + self.coding_id)
+                        #     sys.exit(1)
+                        # else:
+                        #     self.crf = crf
+                            # self.passes = None
                     else:
                         logger.warn("number of passes not specified in coding " + self.coding_id + ", assuming 2")
                         self.passes = 2
@@ -872,6 +878,9 @@ class QualityLevel:
         if 'audioCodec' in data:
             self.audio_codec = data['audioCodec']
             self.audio_bitrate = data['audioBitrate']
+
+        if 'videoCrf' in data:
+            self.video_crf = int(data['videoCrf'])
 
         self.hrcs = set()
 

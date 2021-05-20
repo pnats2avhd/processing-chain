@@ -57,133 +57,133 @@ def calculate_avpvs_video_dimensions(SRC_width, SRC_height, postproc_enc_width, 
     return(dims)
 
 
-def _get_video_encoder_command_crf(segment, logfile=""):
-    encoder = segment.video_coding.encoder
-    scenecut = segment.video_coding.scenecut
-    pix_fmt = segment.target_pix_fmt
-    crf = segment.video_coding.crf
-    iframe_interval = segment.video_coding.iframe_interval
-    bframes = segment.video_coding.bframes
+# def _get_video_encoder_command_crf(segment, logfile=""):
+#     encoder = segment.video_coding.encoder
+#     scenecut = segment.video_coding.scenecut
+#     pix_fmt = segment.target_pix_fmt
+#     crf = segment.video_coding.crf
+#     iframe_interval = segment.video_coding.iframe_interval
+#     bframes = segment.video_coding.bframes
 
-    # get target FPS
-    _, target_fps = _get_fps(segment)
-    if target_fps is None:
-        target_fps = segment.src.get_fps()
+#     # get target FPS
+#     _, target_fps = _get_fps(segment)
+#     if target_fps is None:
+#         target_fps = segment.src.get_fps()
 
-    if encoder == "libx264":
-        # construct rate control commands
-        rate_control_cmd = "-crf " + str(crf) + " "
+#     if encoder == "libx264":
+#         # construct rate control commands
+#         rate_control_cmd = "-crf " + str(crf) + " "
 
-        if segment.video_coding.maxrate:
-            rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate) + "k "
-        if segment.video_coding.bufsize:
-            rate_control_cmd += "-bufsize " + str(segment.video_coding.bufsize) + "k "
-        if segment.video_coding.minrate:
-            rate_control_cmd += "-minrate " + str(segment.video_coding.minrate) + "k "
+#         if segment.video_coding.maxrate:
+#             rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate) + "k "
+#         if segment.video_coding.bufsize:
+#             rate_control_cmd += "-bufsize " + str(segment.video_coding.bufsize) + "k "
+#         if segment.video_coding.minrate:
+#             rate_control_cmd += "-minrate " + str(segment.video_coding.minrate) + "k "
 
-        # keyframe interval
-        if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
-            iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
-        else:
-            iframe_interval_cmd = ""
+#         # keyframe interval
+#         if iframe_interval:
+#             target_interval = int(target_fps * iframe_interval)
+#             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
+#         else:
+#             iframe_interval_cmd = ""
 
-        x264_params = []
+#         x264_params = []
 
-        # scenecuts
-        if not scenecut:
-            x264_params.append("scenecut=-1")
+#         # scenecuts
+#         if not scenecut:
+#             x264_params.append("scenecut=-1")
 
-        # bframes
-        if bframes is not None:
-            x264_params.append("bframes=" + str(bframes))
+#         # bframes
+#         if bframes is not None:
+#             x264_params.append("bframes=" + str(bframes))
 
-        # join all params
-        if len(x264_params):
-            x264_params_cmd = "-x264-params " + ":".join(x264_params)
-        else:
-            x264_params_cmd = ""
+#         # join all params
+#         if len(x264_params):
+#             x264_params_cmd = "-x264-params " + ":".join(x264_params)
+#         else:
+#             x264_params_cmd = ""
 
-        cmd = """
-        -c:v libx264
-        {rate_control_cmd}
-        {iframe_interval_cmd}
-        {x264_params_cmd}
-        -pix_fmt {pix_fmt}
-        """.format(**locals())
+#         cmd = """
+#         -c:v libx264
+#         {rate_control_cmd}
+#         {iframe_interval_cmd}
+#         {x264_params_cmd}
+#         -pix_fmt {pix_fmt}
+#         """.format(**locals())
 
-    elif encoder == "libx265":
+#     elif encoder == "libx265":
 
-        rate_control_cmd = "-crf " + str(crf) + " "
+#         rate_control_cmd = "-crf " + str(crf) + " "
 
-        # construct rate control commands
-        x265_params = []
+#         # construct rate control commands
+#         x265_params = []
 
-        minrate_cmd = ""
-        if segment.video_coding.maxrate:
-            x265_params.append("vbv-maxrate=" + str(int(segment.video_coding.maxrate)))
-        if segment.video_coding.bufsize:
-            x265_params.append("vbv-bufsize=" + str(int(segment.video_coding.bufsize)))
-        if segment.video_coding.minrate:
-            minrate_cmd = "-minrate " + str(int(segment.video_coding.minrate)) + "k "
+#         minrate_cmd = ""
+#         if segment.video_coding.maxrate:
+#             x265_params.append("vbv-maxrate=" + str(int(segment.video_coding.maxrate)))
+#         if segment.video_coding.bufsize:
+#             x265_params.append("vbv-bufsize=" + str(int(segment.video_coding.bufsize)))
+#         if segment.video_coding.minrate:
+#             minrate_cmd = "-minrate " + str(int(segment.video_coding.minrate)) + "k "
 
-        # keyframe interval
-        if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
-            x265_params.append("keyint=" + str(target_interval))
-            x265_params.append("min-keyint=" + str(target_interval))
+#         # keyframe interval
+#         if iframe_interval:
+#             target_interval = int(target_fps * iframe_interval)
+#             x265_params.append("keyint=" + str(target_interval))
+#             x265_params.append("min-keyint=" + str(target_interval))
 
-        # scenecut
-        if scenecut is not False:
-            x265_params.append("scenecut=0")
+#         # scenecut
+#         if scenecut is not False:
+#             x265_params.append("scenecut=0")
 
-        # bframes
-        if bframes is not None:
-            x265_params.append("bframes=" + str(bframes))
+#         # bframes
+#         if bframes is not None:
+#             x265_params.append("bframes=" + str(bframes))
 
-        x265_params_cmd = ""
-        if len(x265_params):
-            x265_params_cmd = "-x265-params " + ":".join(x265_params)
+#         x265_params_cmd = ""
+#         if len(x265_params):
+#             x265_params_cmd = "-x265-params " + ":".join(x265_params)
 
-        cmd = """
-        -c:v libx265
-        {rate_control_cmd}
-        {x265_params_cmd}
-        {minrate_cmd}
-        -pix_fmt {pix_fmt}
-        """.format(**locals())
+#         cmd = """
+#         -c:v libx265
+#         {rate_control_cmd}
+#         {x265_params_cmd}
+#         {minrate_cmd}
+#         -pix_fmt {pix_fmt}
+#         """.format(**locals())
 
-    elif encoder == "libvpx-vp9":
-        # construct rate control commands
-        rate_control_cmd = "-b:v 0 -crf " + str(crf) + " "
+#     elif encoder == "libvpx-vp9":
+#         # construct rate control commands
+#         rate_control_cmd = "-b:v 0 -crf " + str(crf) + " "
 
-        if segment.video_coding.maxrate_factor:
-            rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate) + "k "
-        if segment.video_coding.bufsize_factor:
-            rate_control_cmd += "-bufsize " + str(segment.video_coding.bufsize) + "k "
-        if segment.video_coding.minrate_factor:
-            rate_control_cmd += "-minrate " + str(segment.video_coding.minrate) + "k "
+#         if segment.video_coding.maxrate_factor:
+#             rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate) + "k "
+#         if segment.video_coding.bufsize_factor:
+#             rate_control_cmd += "-bufsize " + str(segment.video_coding.bufsize) + "k "
+#         if segment.video_coding.minrate_factor:
+#             rate_control_cmd += "-minrate " + str(segment.video_coding.minrate) + "k "
 
-        # keyframe interval
-        if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
-            iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
-        else:
-            iframe_interval_cmd = ""
+#         # keyframe interval
+#         if iframe_interval:
+#             target_interval = int(target_fps * iframe_interval)
+#             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
+#         else:
+#             iframe_interval_cmd = ""
 
-        cmd = """
-        -c:v libvpx-vp9
-        {rate_control_cmd}
-        {iframe_interval_cmd}
-        -strict -2
-        -pix_fmt {pix_fmt}
-        """.format(**locals())
+#         cmd = """
+#         -c:v libvpx-vp9
+#         {rate_control_cmd}
+#         {iframe_interval_cmd}
+#         -strict -2
+#         -pix_fmt {pix_fmt}
+#         """.format(**locals())
 
-    else:
-        logger.error("wrong encoder: " + str(encoder))
-        sys.exit(1)
+#     else:
+#         logger.error("wrong encoder: " + str(encoder))
+#         sys.exit(1)
 
-    return cmd
+#     return cmd
 
 
 def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=""):
@@ -202,7 +202,8 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
     #bitrate = segment.quality_level.video_bitrate
     """
 
-    bitrate = segment.target_video_bitrate
+    if not segment.video_coding.crf:
+        bitrate = segment.target_video_bitrate
 
     # settings that will already be defined
     encoder = segment.video_coding.encoder
@@ -244,9 +245,13 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
     else:
         preset_cmd = ""
 
-    if encoder == "libx264":
+    if encoder in ["libx264", "h264_nvenc"]:
         # construct rate control commands
-        rate_control_cmd = "-b:v " + str(bitrate) + "k "
+        if segment.video_coding.crf:
+            rate_control_cmd = "-crf " + str(segment.quality_level.video_crf) + " "
+        else:
+            rate_control_cmd = "-b:v " + str(bitrate) + "k "
+
         if segment.video_coding.maxrate_factor:
             rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate_factor * bitrate) + "k "
         if segment.video_coding.bufsize_factor:
@@ -262,11 +267,11 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         x264_params = []
 
         # scenecuts
-        if scenecut is False:
+        if not scenecut:
             x264_params.append("scenecut=-1")
 
         # bframes
-        if bframes is not None:
+        if bframes:
             x264_params.append("bframes=" + str(bframes))
 
         # join all params
@@ -276,7 +281,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
             x264_params_cmd = ""
 
         cmd = """
-        -c:v libx264
+        -c:v {encoder}
         {rate_control_cmd}
         {iframe_interval_cmd}
         {x264_params_cmd}
@@ -285,8 +290,18 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         {pass_cmd} {passlogfile_cmd}
         """.format(**locals())
 
-    elif encoder == "libx265":
+    elif encoder in ["libx265", "hevc_nvenc"]:
+
+        # Supported pixel formats: yuv420p nv12 p010le yuv444p p016le yuv444p16le bgr0 rgb0 cuda
+        # For hevc_nvenc
+
         # construct rate control commands
+
+        if segment.video_coding.crf:
+            rate_control_cmd = "-crf " + str(segment.quality_level.video_crf) + " "
+        else:
+            rate_control_cmd = "-b:v " + str(bitrate) + "k "
+
         x265_params = []
         minrate_cmd = ""
         if segment.video_coding.maxrate_factor:
@@ -323,8 +338,9 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
             x265_params_cmd = "-x265-params " + ":".join(x265_params)
 
         cmd = """
-        -c:v libx265
-        -b:v {bitrate}k {minrate_cmd}
+        -c:v {encoder}
+        {rate_control_cmd}
+        {minrate_cmd}
         {x265_params_cmd}
         {preset_cmd}
         -pix_fmt {pix_fmt}
@@ -332,7 +348,11 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
 
     elif encoder == "libvpx-vp9":
         # construct rate control commands
-        rate_control_cmd = "-b:v " + str(bitrate) + "k "
+        if segment.video_coding.crf:
+            rate_control_cmd = "-b:v 0 -crf " + str(segment.quality_level.video_crf) + " "
+        else:
+            rate_control_cmd = "-b:v " + str(bitrate) + "k "
+
         if segment.video_coding.maxrate_factor:
             rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate_factor * bitrate) + "k "
         if segment.video_coding.bufsize_factor:
@@ -344,9 +364,11 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         if iframe_interval:
             target_interval = int(target_fps * iframe_interval)
             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
+        else:
+            iframe_interval_cmd = ""
 
         cmd = """
-        -c:v libvpx-vp9
+        -c:v {encoder}
         {rate_control_cmd}
         {iframe_interval_cmd}
         -strict -2
@@ -941,7 +963,7 @@ def encode_segment(segment, overwrite=False):
         """.format(**locals())
 
     elif segment.video_coding.crf:
-        video_encoder_cmd = _get_video_encoder_command_crf(segment)
+        video_encoder_cmd = _get_video_encoder_command(segment)
 
         cmd = """
         ffmpeg -nostdin
