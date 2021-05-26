@@ -264,6 +264,10 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
             target_interval = int(target_fps * iframe_interval)
             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
 
+        nvenc_options = ""
+        if segment.video_coding.nvenc_options:
+            nvenc_options = segment.video_coding.nvenc_options
+
         x264_params = []
 
         # scenecuts
@@ -287,6 +291,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         {x264_params_cmd}
         {preset_cmd}
         -pix_fmt {pix_fmt}
+        {nvenc_options}
         {pass_cmd} {passlogfile_cmd}
         """.format(**locals())
 
@@ -305,17 +310,27 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         x265_params = []
         minrate_cmd = ""
         if segment.video_coding.maxrate_factor:
-            x265_params.append("vbv-maxrate=" + str(int(segment.video_coding.maxrate_factor * bitrate)))
+            if encoder == 'libx265':
+                x265_params.append("vbv-maxrate=" + str(int(segment.video_coding.maxrate_factor * bitrate)))
+            else:
+                minrate_cmd += "-maxrate " + str(int(segment.video_coding.maxrate_factor * bitrate)) + "k "
         if segment.video_coding.bufsize_factor:
-            x265_params.append("vbv-bufsize=" + str(int(segment.video_coding.bufsize_factor * bitrate)))
+            if encoder == 'libx265':
+                x265_params.append("vbv-bufsize=" + str(int(segment.video_coding.bufsize_factor * bitrate)))        
+            else:
+                minrate_cmd += "-bufsize " + str(int(segment.video_coding.bufsize_factor * bitrate)) + "k "
+            # x265_params.append("vbv-bufsize=" + str(int(segment.video_coding.bufsize_factor * bitrate)))
         if segment.video_coding.minrate_factor:
-            minrate_cmd = "-minrate " + str(int(segment.video_coding.minrate_factor * bitrate)) + "k "
+            minrate_cmd += "-minrate " + str(int(segment.video_coding.minrate_factor * bitrate)) + "k "
 
         # keyframe interval
         if iframe_interval:
             target_interval = int(target_fps * iframe_interval)
-            x265_params.append("keyint=" + str(target_interval))
-            x265_params.append("min-keyint=" + str(target_interval))
+            if encoder == 'libx265':
+                x265_params.append("keyint=" + str(target_interval))
+                x265_params.append("min-keyint=" + str(target_interval))
+            else:
+                preset_cmd += ' -g ' + str(target_interval)
 
         # scenecut
         if scenecut is not False:
@@ -334,8 +349,12 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
             x265_params.append("stats='" + str(logfile) + "'")
 
         x265_params_cmd = ""
-        if len(x265_params):
+        if len(x265_params) & (encoder == 'libx265'):
             x265_params_cmd = "-x265-params " + ":".join(x265_params)
+
+        nvenc_options = ""
+        if segment.video_coding.nvenc_options:
+            nvenc_options = segment.video_coding.nvenc_options
 
         cmd = """
         -c:v {encoder}
@@ -343,6 +362,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         {minrate_cmd}
         {x265_params_cmd}
         {preset_cmd}
+        {nvenc_options}
         -pix_fmt {pix_fmt}
         """.format(**locals())
 

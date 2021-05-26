@@ -772,6 +772,7 @@ class Coding:
             self.minrate = None
             self.maxrate = None
             self.bufsize = None
+            self.nvenc_options = None
 
             if 'profile' in data:
                 logger.warning("Setting profile in " + self.coding_id + " is not supported anymore.")
@@ -828,6 +829,9 @@ class Coding:
 
             if 'bufsize' in data:
                 self.bufsize = float(data['bufsize'])
+
+            if 'nvenc_options' in data:
+                self.nvenc_options = data['nvenc_options']
 
             # enforce that both maxrate and bufsize are specified
             if self.encoder != "libvpx-vp9" and \
