@@ -903,8 +903,9 @@ class PostProcessing:
     def __init__(self, test_config, data):
         self.test_config = test_config
         self.processing_type = data['type']
+        self.display_frame_rate = 60
 
-        if self.processing_type not in ["pc", "tablet", "mobile"]:
+        if self.processing_type not in ["pc", "tablet", "mobile", "pc-home"]:
             logger.error("Wrong post processing type " + self.processing_type + ", must be pc/tablet/mobile")
             sys.exit(1)
 
@@ -925,6 +926,9 @@ class PostProcessing:
            ((self.display_height != self.coding_height) or (self.display_width != self.coding_width)):
             logger.error("PC post processing must have same coding and display width/height!")
             sys.exit(1)
+
+        if 'displayFrameRate' in data:
+            self.display_frame_rate = data['displayFrameRate']
 
     def __repr__(self):
         return "<PostProcessing " + self.processing_type.upper() + ">"

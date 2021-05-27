@@ -442,7 +442,7 @@ def _get_fps(segment):
         # if the SRC is 50/60 we take half of it:
         elif orig_fps == 50:
             fps = 25
-        elif orig_fps == 60:
+        elif orig_fps in [60, 120]:
             fps = 30
         else:
             logger.error("SRC " + str(segment.src) + " has unsupported frame rate (" + str(orig_fps) + ")")
@@ -457,6 +457,8 @@ def _get_fps(segment):
         elif orig_fps < 50:
             logger.error("fps for " + str(segment) + " were requested as 50/60 but SRC has only " + str(orig_fps))
             sys.exit(1)
+        elif orig_fps == 120:
+            fps = 60
         else:
             logger.error("SRC " + str(segment.src) + " has unsupported frame rate (" + str(orig_fps) + ")")
             sys.exit(1)
@@ -1237,7 +1239,7 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
     aformat_normalize = ''
     if post_processing.processing_type in ["pc", "tv"]:
         vcodec, target_pix_fmt = pvs.get_vcodec_and_pix_fmt_for_cpvs(rawvideo=rawvideo)
-        filters = "-af aresample=48000 -filter:v 'fps=fps=60"
+        filters = "-af aresample=48000 -filter:v 'fps=fps={post_processing.display_frame_rate}".format(**locals())
 
         # videos with smaller height will be padded to full height
         if avpvs_height < post_processing.coding_height:
@@ -1263,7 +1265,7 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
     else:
         mobile_vopts = "-c:v libx264 -preset {mobile_preset} -pix_fmt yuv420p -crf {mobile_crf} -profile:v {mobile_vprofile} -movflags faststart".format(**locals())
 
-        filters = "-filter:v 'fps=fps=60"
+        filters = "-filter:v 'fps=fps={post_processing.display_frame_rate}".format(**locals())
         if (post_processing.display_height != post_processing.coding_height) or (avpvs_height < post_processing.coding_height):
             # special case for tablet where padding is needed, pad to display height
             pad_filter = "pad=width={post_processing.display_width}:height={post_processing.display_height}:x=(ow-iw)/2:y=(oh-ih)/2".format(**locals())
