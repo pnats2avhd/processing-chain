@@ -211,6 +211,8 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
     speed = segment.video_coding.speed
     scenecut = segment.video_coding.scenecut
     pix_fmt = segment.target_pix_fmt
+    # if segment.video_coding.forced_pix_fmt:
+    #     pix_fmt = segment.video_coding.forced_pix_fmt
 
     # get target FPS
     _, target_fps = _get_fps(segment)
@@ -1276,7 +1278,15 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
             aformat_normalize = "-c:a aac -b:a 512k"
             mobile_aopts = "-c:a aac -b:a 512k -t {total_duration}".format(**locals())
 
-        cmd = simple_encoding(pvs, overwrite, input_file, output_file, mobile_vopts, mobile_aopts, filters)
+        cmd = simple_encoding(
+                pvs, 
+                overwrite, 
+                input_file, 
+                output_file, 
+                mobile_vopts, 
+                mobile_aopts, 
+                filters
+            )
 
     # add audio normalization step to -23dBFS RMS
     if test_config.is_long():

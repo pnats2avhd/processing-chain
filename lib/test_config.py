@@ -465,6 +465,9 @@ class Segment:
         if (self.quality_level.video_codec == "h264") and (self.video_coding.encoder.casefold() == "bitmovin"):
             self.target_pix_fmt = "yuv420p"
 
+        if self.video_coding.forced_pix_fmt:
+            self.target_pix_fmt = self.video_coding.forced_pix_fmt
+
     def get_filename(self):
         """
         Return the filename of the segment to be generated.
@@ -716,6 +719,7 @@ class Coding:
 
         self.is_online = None
         self.crf = None
+        self.forced_pix_fmt = None
 
         if self.coding_type == "video":
             self.encoder = data['encoder']
@@ -777,13 +781,16 @@ class Coding:
             if 'profile' in data:
                 logger.warning("Setting profile in " + self.coding_id + " is not supported anymore.")
 
-            if 'pix_fmt' in data:
-                logger.warning("Setting pix_fmt in " + self.coding_id + " is not supported.")
+            # if 'pix_fmt' in data:
+            #     logger.warning("Setting pix_fmt in " + self.coding_id + " is not supported.")
 
             if 'iFrameInterval' in data:
                 self.iframe_interval = int(data['iFrameInterval'])
             elif not self.is_online:
                 logger.warn("Constant iFrame-Interval not set in coding " + self.coding_id + ", this is not recommended!")
+
+            if 'pixFmt' in data:
+                self.forced_pix_fmt = data['pixFmt']
 
             if 'bframes' in data:
                 if self.encoder == "libvpx-vp9":
