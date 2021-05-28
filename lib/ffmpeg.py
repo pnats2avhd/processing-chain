@@ -271,6 +271,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
             nvenc_options = segment.video_coding.nvenc_options
 
         x264_params = []
+        x264_params_cmd = ""
 
         # scenecuts
         if not scenecut:
@@ -281,10 +282,8 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
             x264_params.append("bframes=" + str(bframes))
 
         # join all params
-        if len(x264_params):
+        if len(x264_params) & (encoder == 'libx264'):
             x264_params_cmd = "-x264-params " + ":".join(x264_params)
-        else:
-            x264_params_cmd = ""
 
         cmd = """
         -c:v {encoder}

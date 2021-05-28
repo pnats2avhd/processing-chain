@@ -23,8 +23,20 @@ import logging
 import sys
 from multiprocessing import Pool
 from subprocess import SubprocessError
+from itertools import islice
 
 logger = logging.getLogger('main')
+
+
+def chunk_dict(data, SIZE=10000):
+    it = iter(data)
+    for i in range(0, len(data), SIZE):
+        yield {k for k in islice(it, SIZE)}
+
+
+def squeeze_in_command(commandline, gpuid):
+    splitted = commandline.split('nvenc')
+    return splitted[0] + 'nvenc -gpu ' + str(gpuid) + splitted[1]
 
 
 def shell_call(cmd, raw=True):
@@ -85,6 +97,25 @@ class ParallelRunner():
         if not all(results):
             logger.error("There were errors in your commands. Please check the output and re-run the processing chain!")
             sys.exit(1)
+        logger.debug("all processes completed")
+        self.cmds = set()
+
+    def run_commands_on_multiple_gpus(self):
+        logger.debug("starting parallel run of commands, in chunks")
+        chunk_results = ''
+        batches_of_cmd_chunks = chunk_dict(self.cmds, self.max_parallel)
+
+        for cmd_chunk in batches_of_cmd_chunks: 
+            list_of_cmds = list(cmd_chunk)
+            list_of_cmds = [(squeeze_in_command(cmd_tup[0], gpu_num), cmd_tup[1]) for cmd_tup, gpu_num in zip(list_of_cmds, range(0, self.max_parallel))]
+            set_of_cmds = set(list_of_cmds)
+            chunk_pool = Pool(processes=self.max_parallel)
+            chunk_results = chunk_pool.starmap(self._run_single_cmd, set_of_cmds)
+
+            if not all(chunk_results):
+                logger.error("There were errors in your commands. Please check the output and re-run the processing chain!")
+                sys.exit(1)
+            chunk_results = ''
         logger.debug("all processes completed")
         self.cmds = set()
 

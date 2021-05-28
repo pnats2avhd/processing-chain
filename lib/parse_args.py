@@ -68,7 +68,8 @@ def parse_args(name, script=None):
         '-p', '--parallelism',
         default=4,
         type=int,
-        help='number of processes to start in parallel (use more if you have more RAM/CPU cores)'
+        help='number of processes to start in parallel (use more if you have more RAM/CPU cores). \
+        If using nvenc, using more than p=1 will assume multiple GPUs.'
     )
     parser.add_argument(
         '-r', '--remove-intermediate',
