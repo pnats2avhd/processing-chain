@@ -1208,7 +1208,7 @@ def simple_encoding(pvs, overwrite, input_file, output_file, vopts, aopts="", fi
     return cmd
 
 
-def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_crf=15, mobile_vprofile="high", mobile_preset="fast"):
+def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_crf=17, mobile_vprofile="high", mobile_preset="fast"):
     """
     Create the CPVS used for PC or mobile devices,
     for PC with proper pixel format in AVI container,
