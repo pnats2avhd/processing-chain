@@ -38,7 +38,8 @@ RUN apt-get update -qq && apt-get install -qq -y \
 
 RUN mkdir /nvenc
 WORKDIR /nvenc
-RUN git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+#RUN git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+RUN git clone https://github.com/FFmpeg/nv-codec-headers.git
 RUN cd nv-codec-headers && make install
 
 

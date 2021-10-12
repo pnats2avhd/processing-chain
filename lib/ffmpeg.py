@@ -878,31 +878,32 @@ def encode_segment(segment, overwrite=False):
     orig_fps = float(Fraction(segment.src.stream_info["r_frame_rate"]))
 
     if fps_cmd:
-        adv_select = ''
         fps_perc = 100 * calculated_fps / orig_fps
+        if int(fps_perc) != 100:
+            adv_select = ''
 
-        if int(fps_perc) == 50:  # fps 60->30, 24->12
-            adv_select = "mod(n+1,2)"
-        elif int(fps_perc) == 40:  # fps 60->24
-            adv_select = "not(mod(n,5))+not(mod(n-3,5))"
-        elif int(fps_perc) == 33:  # fps 60->20, 24->8
-            adv_select = "not(mod(n,3))"
-        elif int(fps_perc) == 25:  # fps 60->15, 24->6
-            adv_select = "not(mod(n,4))"
-        elif int(fps_perc) == 80:  # # fps 30->24, this usually does not look good
-            adv_select = "mod(n+1,5)"
-        elif int(fps_perc) == 30:  # fps 50->15
-            adv_select = "not(mod(n,10)) + not(mod(n-3,10)) + not(mod(n-7,10))"
-        elif int(fps_perc) == 60:  # fps 25->15
-            adv_select = "not(mod(n,5))+not(mod(n-3,5))+not(mod(n-2,5))"
-        elif fps_perc == 62.5:  # fps 24->15
-            adv_select = "not(mod(n,8))+not(mod(n-3,8))+not(mod(n-2,8))+not(mod(n-5,8))+not(mod(n-6,8))"
-        else:
-            logger.error("Frame rate conversion from " + str(orig_fps) + " to " + str(calculated_fps) + " is not supported in segment " + str(segment))
-            sys.exit(1)
+            if int(fps_perc) == 50:  # fps 60->30, 24->12
+                adv_select = "mod(n+1,2)"
+            elif int(fps_perc) == 40:  # fps 60->24
+                adv_select = "not(mod(n,5))+not(mod(n-3,5))"
+            elif int(fps_perc) == 33:  # fps 60->20, 24->8
+                adv_select = "not(mod(n,3))"
+            elif int(fps_perc) == 25:  # fps 60->15, 24->6
+                adv_select = "not(mod(n,4))"
+            elif int(fps_perc) == 80:  # # fps 30->24, this usually does not look good
+                adv_select = "mod(n+1,5)"
+            elif int(fps_perc) == 30:  # fps 50->15
+                adv_select = "not(mod(n,10)) + not(mod(n-3,10)) + not(mod(n-7,10))"
+            elif int(fps_perc) == 60:  # fps 25->15
+                adv_select = "not(mod(n,5))+not(mod(n-3,5))+not(mod(n-2,5))"
+            elif fps_perc == 62.5:  # fps 24->15
+                adv_select = "not(mod(n,8))+not(mod(n-3,8))+not(mod(n-2,8))+not(mod(n-5,8))+not(mod(n-6,8))"
+            else:
+                logger.error("Frame rate conversion from " + str(orig_fps) + " to " + str(calculated_fps) + " is not supported in segment " + str(segment))
+                sys.exit(1)
 
-        filter_list.append("select=\'" + adv_select + "\'")
-        filter_list.append("fps=fps=" + str(calculated_fps))
+            filter_list.append("select=\'" + adv_select + "\'")
+        filter_list.append("fps=fps=" + str(calculated_fps))    
     else:
         filter_list.append("fps=fps=" + str(orig_fps))
 
