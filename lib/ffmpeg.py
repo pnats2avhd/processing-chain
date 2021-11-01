@@ -399,6 +399,40 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         {pass_cmd} {passlogfile_cmd}
         """.format(**locals())
 
+    elif encoder == "libaom-av1":
+        # construct rate control commands
+        if segment.video_coding.crf:
+            rate_control_cmd = "-b:v 0 -crf " + str(segment.quality_level.video_crf) + " "
+        else:
+            rate_control_cmd = "-b:v " + str(bitrate) + "k "
+
+        if segment.video_coding.maxrate_factor:
+            rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate_factor * bitrate) + "k "
+        # if segment.video_coding.bufsize_factor:
+        #     rate_control_cmd += "-bufsize " + str(segment.video_coding.bufsize_factor * bitrate) + "k "
+        if segment.video_coding.minrate_factor:
+            rate_control_cmd += "-minrate " + str(segment.video_coding.minrate_factor * bitrate) + "k "
+
+        # keyframe interval
+        if iframe_interval:
+            target_interval = int(target_fps * iframe_interval)
+            iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
+        else:
+            iframe_interval_cmd = ""
+
+        if not scenecut:
+            iframe_interval_cmd += " -sc_threshold 0 "
+
+        cmd = """
+        -c:v {encoder}
+        {rate_control_cmd}
+        {iframe_interval_cmd}
+        -strict -2 -tile-columns 1 -tile-rows 0 -threads 4 -cpu-used 4 -row-mt 1
+        -pix_fmt {pix_fmt}
+        {pass_cmd} {passlogfile_cmd}
+        """.format(**locals())
+
+
     else:
         logger.error("wrong encoder: " + str(encoder))
         sys.exit(1)
@@ -531,7 +565,7 @@ def get_segment_info(segment):
     - `video_target_bitrate`: Target bitrate of the video stream in kBit/s (may be empty/unknown)
     - `video_width`: Width in pixels
     - `video_height`: Height in pixels
-    - `video_codec`: Video codec (`h264`, `hevc`, `vp9`)
+    - `video_codec`: Video codec (`h264`, `hevc`, `vp9`, `av1`)
     - `video_profile`: Video profile
     - `audio_duration`: Duration of the audio in `s.msec`
     - `audio_sample_rate`: Audio sample rate in Hz
@@ -865,6 +899,10 @@ def encode_segment(segment, overwrite=False):
             logger.warn("output " + output_file + " already exists, will not convert. Use --force to force overwriting.")
             return None
 
+    nr_threads_opt = ' -threads 1'
+    if segment.quality_level.video_codec == 'av1':
+        nr_threads_opt = ''
+
     # Filters
     filter_list = []
 
@@ -925,7 +963,7 @@ def encode_segment(segment, overwrite=False):
         common_opts = """
         -nostdin
         -ss {segment.start_time} -i {input_file}
-        -threads 1
+        {nr_threads_opt}
         -t {segment.duration}
         -video_track_timescale 90000
         -filter:v {filters}
@@ -977,7 +1015,7 @@ def encode_segment(segment, overwrite=False):
         ffmpeg -nostdin
         {overwrite_spec}
         -ss {segment.start_time} -i {input_file}
-        -threads 1
+        {nr_threads_opt}
         -t {segment.duration}
         -video_track_timescale 90000
         -filter:v {filters}
@@ -993,7 +1031,7 @@ def encode_segment(segment, overwrite=False):
         ffmpeg -nostdin
         {overwrite_spec}
         -ss {segment.start_time} -i {input_file}
-        -threads 1
+        {nr_threads_opt}
         -t {segment.duration}
         -video_track_timescale 90000
         -filter:v {filters}

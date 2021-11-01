@@ -481,7 +481,7 @@ class Segment:
             self.ext = "webm"
         elif self.video_coding.encoder.casefold() == "bitmovin" and self.quality_level.video_codec == "vp9":
             self.ext = "mkv"
-        elif self.quality_level.video_codec == "vp9":
+        elif self.quality_level.video_codec == "vp9" or self.quality_level.video_codec == "av1":
             self.ext = "mp4"
         else:
             logger.error("Wrong video codec for quality level " + self.quality_level)

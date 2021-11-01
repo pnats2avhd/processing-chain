@@ -55,6 +55,7 @@ install_ffmpeg() {
     --enable-libx264 \
     --enable-libx265 \
     --enable-nonfree \
+    --enable-libaom \
     --enable-nvenc \
     --extra-cflags=-I/usr/local/cuda/include \
     --extra-ldflags=-L/usr/local/cuda/lib64

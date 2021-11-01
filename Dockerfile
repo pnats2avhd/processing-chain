@@ -24,6 +24,7 @@ RUN apt-get update -qq && apt-get install -qq -y \
   libfdk-aac-dev \
   libvpx-dev \
   python3-setuptools \
+  libunistring-dev libaom-dev libdav1d-dev \
   python3-pip \
   python3-venv \
   && rm -rf /var/lib/apt/lists/*

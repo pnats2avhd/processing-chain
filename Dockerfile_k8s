@@ -30,6 +30,7 @@ RUN apt-get update -qq && apt-get install -qq -y \
   libc6-dev \
   unzip \
   libnuma1 \
+  libunistring-dev libaom-dev \
   libnuma-dev \
   && rm -rf /var/lib/apt/lists/*
 

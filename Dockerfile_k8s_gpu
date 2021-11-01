@@ -34,6 +34,7 @@ RUN apt-get update -qq && apt-get install -qq -y \
   unzip \
   libnuma1 \
   libnuma-dev \
+  libunistring-dev libaom-dev \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /nvenc
