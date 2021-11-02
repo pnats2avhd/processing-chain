@@ -247,6 +247,7 @@ class Hrc:
 
             if (video_codec == "vp9" and encoder != "libvpx-vp9" and encoder not in self.test_config.ONLINE_CODERS) \
                or (video_codec == "h265" and encoder not in ["libx265", "hevc_nvenc"] and encoder not in self.test_config.ONLINE_CODERS) \
+               or (video_codec == "av1" and encoder != "libaom-av1" and encoder not in self.test_config.ONLINE_CODERS) \
                or (video_codec == "h264" and encoder not in ["libx264", "h264_nvenc"] and encoder not in self.test_config.ONLINE_CODERS):
                 logger.error("In HRC " + self.hrc_id + ", quality level " + str(event.quality_level) + " and video coding " + str(self.video_coding) + " specify different codecs")
                 sys.exit(1)

@@ -263,7 +263,6 @@ def get_framesize_h265(filename, force):
             byte[0] = hex(ord(tmp))
 
 
-# NOT IMPLEMENTED YET
 def get_framesize_av1(filename, force=True):
     framesizes = []
     cmd = "ffprobe -select_streams v -show_frames -of json '" + filename + "'"
