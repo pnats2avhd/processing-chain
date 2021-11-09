@@ -595,6 +595,8 @@ def get_src_info(src):
         stdout, _ = cmd_utils.run_command(cmd, name="get SRC info for " + str(src))
         info = json.loads(stdout)
         returndata = info["streams"][0]
+        if '/' in returndata['r_frame_rate']:
+            returndata['r_frame_rate'] = str(int(eval(returndata['r_frame_rate'])))
 
         videosize = get_stream_size(src)
         audiosize = get_stream_size(src, 'audio')
