@@ -57,6 +57,7 @@ install_ffmpeg() {
     --enable-nonfree \
     --enable-libaom \
     --enable-nvenc \
+    --enable-libvmaf \
     --extra-cflags=-I/usr/local/cuda/include \
     --extra-ldflags=-L/usr/local/cuda/lib64
   PATH="$HOME/bin:$PATH" make -j 4

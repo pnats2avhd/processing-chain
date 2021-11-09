@@ -34,11 +34,19 @@ RUN apt-get update -qq && apt-get install -qq -y \
   libnuma-dev \
   && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /nvenc
-WORKDIR /nvenc
-RUN git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
-RUN cd nv-codec-headers && make install
+#RUN mkdir /nvenc
+#WORKDIR /nvenc
+#RUN git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+#RUN cd nv-codec-headers && make install
 
+RUN mkdir /vmaf
+WORKDIR /vmaf
+RUN wget -q -O v2.3.0.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v2.3.0.tar.gz
+RUN tar xvf v2.3.0.tar.gz
+WORKDIR /vmaf/vmaf-2.3.0/libvmaf
+RUN meson build --buildtype release
+RUN ninja -vC build
+RUN ninja -vC build install
 
 COPY ./docker/install_ffmpeg.sh /install_ffmpeg.sh
 RUN chmod +x /install_ffmpeg.sh && \

@@ -35,6 +35,7 @@ RUN apt-get update -qq && apt-get install -qq -y \
   libnuma1 \
   libnuma-dev \
   libunistring-dev libaom-dev \
+  ninja-build meson \
   && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /nvenc
@@ -43,6 +44,14 @@ WORKDIR /nvenc
 RUN git clone https://github.com/FFmpeg/nv-codec-headers.git
 RUN cd nv-codec-headers && make install
 
+RUN mkdir /vmaf
+WORKDIR /vmaf
+RUN wget -q -O v2.3.0.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v2.3.0.tar.gz
+RUN tar xvf v2.3.0.tar.gz
+WORKDIR /vmaf/vmaf-2.3.0/libvmaf
+RUN meson build --buildtype release
+RUN ninja -vC build
+RUN ninja -vC build install
 
 COPY ./docker/install_ffmpeg_gpu.sh /install_ffmpeg.sh
 RUN chmod +x /install_ffmpeg.sh && \
@@ -50,7 +59,6 @@ RUN chmod +x /install_ffmpeg.sh && \
   cp /root/bin/ffmpeg /usr/local/bin/ffmpeg && \
   cp /root/bin/ffprobe /usr/local/bin/ffprobe
 
-#COPY . /processing-chain
 COPY requirements.txt /processing-chain/requirements.txt
 WORKDIR /processing-chain
 
@@ -59,4 +67,5 @@ RUN pip3 install git+https://github.com/bitmovin/bitmovin-python.git@v1.21.0
 ENV NAME pnats_processing_chain
 RUN mkdir /proponent-databases
 COPY . /processing-chain
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/x86_64-linux-gnu/"
 

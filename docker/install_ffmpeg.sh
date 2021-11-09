@@ -55,6 +55,7 @@ install_ffmpeg() {
     --enable-libx264 \
     --enable-libx265 \
     --enable-libaom \
+    --enable-libvmaf \
     --enable-nonfree
   PATH="$HOME/bin:$PATH" make -j 4
   make install
