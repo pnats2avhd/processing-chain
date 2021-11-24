@@ -296,7 +296,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         -c:v {encoder}
         {rate_control_cmd}
         {iframe_interval_cmd}
-        -strict -2 -tile-columns 1 -tile-rows 0 -threads 4 -cpu-used 4 -row-mt 1
+        -strict -2 -tile-columns 1 -tile-rows 0 -threads 4 -cpu-used 6 -row-mt 1 -usage 1 -enable-global-motion 0 -enable-intrabc 0 -enable-restoration 0
         -pix_fmt {pix_fmt}
         {pass_cmd} {passlogfile_cmd}
         """.format(**locals())
