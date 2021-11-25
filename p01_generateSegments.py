@@ -87,10 +87,11 @@ def run(cli_args):
         return test_config
 
     logger.info("starting to process segments, please wait")
-    if 'nvenc' in ''.join(cmd_runner.return_command_list()):
-        cmd_runner.run_commands_on_multiple_gpus()
-    else:
-        cmd_runner.run_commands()
+    # if 'nvenc' in ''.join(cmd_runner.return_command_list()):
+    #     cmd_runner.run_commands_on_multiple_gpus()
+    # else:
+    #     cmd_runner.run_commands()
+    cmd_runner.run_commands()
 
     return test_config
 
