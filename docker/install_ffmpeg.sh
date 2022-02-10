@@ -36,9 +36,9 @@ install_ffmpeg() {
 
   # ffmpeg
   cd "$HOME/ffmpeg_sources"
-  wget -q -O ffmpeg44.tar.bz2 https://ffmpeg.org/releases/ffmpeg-4.4.tar.bz2
-  tar xjf ffmpeg44.tar.bz2
-  cd ffmpeg-4.4
+  wget -q -O ffmpeg50.tar.bz2 https://ffmpeg.org/releases/ffmpeg-5.0.tar.bz2
+  tar xjf ffmpeg50.tar.bz2
+  cd ffmpeg-5.0
   PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
     --prefix="$HOME/ffmpeg_build" \
     --pkg-config-flags="--static" \

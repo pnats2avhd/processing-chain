@@ -52,7 +52,8 @@ def calculate_avpvs_video_dimensions(SRC_width, SRC_height, postproc_enc_width, 
                     avpvs_height += 1
                 dims[1] = avpvs_height
         else:
-            dims[1] = SRC_height
+            if not (int(1000*SRC_aspect_ratio) == int(1000*postproc_aspect_ratio)):
+                dims[1] = SRC_height
 
     return(dims)
 
