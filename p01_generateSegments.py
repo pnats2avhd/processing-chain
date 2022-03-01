@@ -61,6 +61,11 @@ def run(cli_args):
                 logger.debug("skipping " + seg.get_filename() + "because skipping online services is enabled.")
         else:
             cmd = ffmpeg.encode_segment(seg, overwrite=cli_args.force)
+            if cli_args.set_gpu_loc > -1:
+                if cmd:
+                    cmd_list = cmd.split()
+                    cmd_list = [*cmd_list[:-1], '-gpu ' + str(cli_args.set_gpu_loc), cmd_list[-1]]
+                    cmd = (" ").join(cmd_list)
             cmd_runner.add_cmd(
                 cmd,
                 name=str(seg)
@@ -87,10 +92,6 @@ def run(cli_args):
         return test_config
 
     logger.info("starting to process segments, please wait")
-    # if 'nvenc' in ''.join(cmd_runner.return_command_list()):
-    #     cmd_runner.run_commands_on_multiple_gpus()
-    # else:
-    #     cmd_runner.run_commands()
     cmd_runner.run_commands()
 
     return test_config

@@ -68,8 +68,7 @@ def parse_args(name, script=None):
         '-p', '--parallelism',
         default=4,
         type=int,
-        help='number of processes to start in parallel (use more if you have more RAM/CPU cores). \
-        If using nvenc, using more than p=1 will assume multiple GPUs.'
+        help='number of processes to start in parallel (use more if you have more RAM/CPU cores).'
     )
     parser.add_argument(
         '-r', '--remove-intermediate',
@@ -86,6 +85,13 @@ def parse_args(name, script=None):
         help='define which scripts p00_processAll shall execute (e.g. "all", "1234", "34")',
         default='1234'
     )
+    if script == 1:
+        parser.add_argument(
+            '-g', '--set-gpu-loc',
+            default=-1,
+            type=int,
+            help='Choose an NVIDIA GPU ID for the processing to run on. Look in nvidia-smi to obtain the GPU ID number. Default, -1, is False.'
+        )
     # Options for p03 only:
     if script == 3:
         parser.add_argument(
