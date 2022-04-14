@@ -24,10 +24,29 @@ RUN apt-get update -qq && apt-get install -qq -y \
   libfdk-aac-dev \
   libvpx-dev \
   python3-setuptools \
-  libunistring-dev libaom-dev libdav1d-dev \
   python3-pip \
   python3-venv \
+  libc6 \
+  libc6-dev \
+  unzip \
+  libnuma1 \
+  libunistring-dev libaom-dev \
+  libnuma-dev \
   && rm -rf /var/lib/apt/lists/*
+
+#RUN mkdir /nvenc
+#WORKDIR /nvenc
+#RUN git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+#RUN cd nv-codec-headers && make install
+
+RUN mkdir /vmaf
+WORKDIR /vmaf
+RUN wget -q -O v2.3.0.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v2.3.0.tar.gz
+RUN tar xvf v2.3.0.tar.gz
+WORKDIR /vmaf/vmaf-2.3.0/libvmaf
+RUN meson build --buildtype release
+RUN ninja -vC build
+RUN ninja -vC build install
 
 COPY ./docker/install_ffmpeg.sh /install_ffmpeg.sh
 RUN chmod +x /install_ffmpeg.sh && \
@@ -38,11 +57,8 @@ RUN chmod +x /install_ffmpeg.sh && \
 COPY . /processing-chain
 
 WORKDIR /processing-chain
-RUN pip3 install --no-cache-dir poetry && \
-  poetry config virtualenvs.create false && \
-  poetry install --no-interaction --no-ansi
 
+RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install git+https://github.com/bitmovin/bitmovin-python.git@v1.21.0
 ENV NAME pnats_processing_chain
 RUN mkdir /proponent-databases
-
-ENTRYPOINT ["poetry", "run", "python3"]

@@ -2,7 +2,7 @@
 
 This is the processing chain used to generate sequences for the P.NATS Phase 2 / AHVD-AS project from ITU-T SG12 and VQEG.
 
-> ⚠️ **Note:** For this release, the versions of ffmpeg, x264, x265 and libvpx-vp9 are rather old. The [updates](https://github.com/pnats2avhd/processing-chain/tree/updates) branch uses up-to-date versions of those tools; the current software is published "as is" in order to match exactly what was used in the project.
+> ⚠️ **Note:** This is an updated version of the chain using the newest dependencies from Ubuntu 20.04, and ffmpeg 4.3. It does not reflect what was used in the project at the time. To use that instead, please switch to the `master` branch.
 
 Table of contents:
 
@@ -33,16 +33,16 @@ It can encode video with:
 
 You need:
 
-- Python 3.x (tested with Python 3.5)
-- Linux (tested with Ubuntu 16.04)
-- `apt install libssl-dev`
+- Python 3.8
+- Linux (tested with Ubuntu 20.04)
 - The `ffmpeg` and `ffprobe` binaries placed in your `$PATH`
 
 Install the current Python package requirements by running:
 
-    pip3 install --user -r requirements.txt
-
-Due to the somewhat outdated dependencies, we recommend using Docker to simplify the requirement installation.
+```
+pip3 install --user poetry
+poetry install
+```
 
 ## Test configuration
 
@@ -122,6 +122,7 @@ See  `docker/README.md` for more info.
 
 ## Acknowledgement
 
+<<<<<<< HEAD
 If you use this software in your research and/or for publications, please link back to the URL of this repository.  
 
 Here is a suggested citation in BibTeX format
@@ -129,11 +130,10 @@ Here is a suggested citation in BibTeX format
 ```BiBTex
 @misc{pnats_processing_chain,
   author="Robitza, Werner and Lindero, David and Borer, Silvio and Satti, Shahid and Göring, Steve and Müller, Martin and Ramachandra Rao, Rakesh Rao",
-  title="AVHD-AS / P.NATS Phase 2 Processing Chain",
+  title="Video Degradation Processing Chain",
   year=2020,
   url=https://github.com/pnats2avhd/processing-chain/,
-  note = "[Online; accessed 2020-10-08]"
-}
+  note = "[Online; accessed 2021-04-28]"
 ```
 
 ## Contributors
@@ -169,11 +169,3 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-Bundled dependencies are licensed under different licenses:
-
-- fdk-aac: Licensed according to the bundled license, see `NOTICE` in `docker/fdk-aac.tar.gz`
-- ffmpeg: Licensed according to GNU Lesser General Public License version 2.1 or later (LGPL v2.1+) and GNU General Public License version 2 or later (GPL v2+).
-- libvpx: Licensed according to the bundled license, see `LICENSE` in `docker/libvpx-1.6.1.tar.gz`
-- x264: Licensed according to GNU General Public License v2.0.
-- x265: Licensed according to GNU General Public License v2.0.

@@ -144,6 +144,9 @@ class Pvs:
     def has_stalling(self):
         return self.has_buffering()
 
+    def has_framefreeze(self):
+        return self.hrc.has_framefreeze()
+
     def get_buff_events_media_time(self):
         """
         Return the buff events in the format required for .buff files in media time
@@ -235,23 +238,25 @@ class Hrc:
         self.event_list = event_list
 
         for event in self.event_list:
-            if event.event_type == "stall" or event.event_type == "youtube":
+            # if event.event_type == "stall" or event.event_type == "youtube"
+            if event.event_type in ["stall", "freeze", "youtube"]:
                 continue
 
             video_codec = event.quality_level.video_codec
             encoder = self.video_coding.encoder
 
             if (video_codec == "vp9" and encoder != "libvpx-vp9" and encoder not in self.test_config.ONLINE_CODERS) \
-               or (video_codec == "h265" and encoder != "libx265" and encoder not in self.test_config.ONLINE_CODERS) \
-               or (video_codec == "h264" and encoder != "libx264" and encoder not in self.test_config.ONLINE_CODERS):
+               or (video_codec == "h265" and encoder not in ["libx265", "hevc_nvenc"] and encoder not in self.test_config.ONLINE_CODERS) \
+               or (video_codec == "av1" and encoder != "libaom-av1" and encoder not in self.test_config.ONLINE_CODERS) \
+               or (video_codec == "h264" and encoder not in ["libx264", "h264_nvenc"] and encoder not in self.test_config.ONLINE_CODERS):
                 logger.error("In HRC " + self.hrc_id + ", quality level " + str(event.quality_level) + " and video coding " + str(self.video_coding) + " specify different codecs")
                 sys.exit(1)
 
         # check the event list length for consistency
-        if self.test_config.type == "short":
-            if len(self.event_list) > 1 or self.event_list[0].event_type == "stall":
-                logger.error("Exactly one event of type 'quality' is allowed for short tests, please fix HRC " + self.hrc_id)
-                sys.exit(1)
+        # if self.test_config.type == "short":
+        #     if len(self.event_list) > 1 or self.event_list[0].event_type == "stall":
+        #         logger.error("Exactly one event of type 'quality' is allowed for short tests, please fix HRC " + self.hrc_id)
+        #         sys.exit(1)
 
         # add segment duration, if not, we are in a short test so it does
         # not matter -- in that case, it will be taken from first (and only) event
@@ -259,8 +264,8 @@ class Hrc:
             self.segment_duration = int(segment_duration)
         elif segment_duration is None:
             first_event = self.event_list[0]
-            if first_event.event_type == "stall":
-                logger.error("Tried to get segment duration from the first event in HRC " + self.hrc_id + ", but it was a stalling event. This should not happen in a long test, since you need to specify a default segmentDuration for the entire test.")
+            if first_event.event_type in ["stall", "freeze"]:
+                logger.error("Tried to get segment duration from the first event in HRC " + self.hrc_id + ", but it was a stalling/freezing event. This should not happen in a long test, since you need to specify a default segmentDuration for the entire test.")
                 sys.exit(1)
             self.segment_duration = first_event.duration
         elif segment_duration == "src_duration":
@@ -278,9 +283,16 @@ class Hrc:
         if self.has_buffering():
             self.buffer_events = self.get_buff_events_media_time()
 
+    # tests for both buffering and frame freezes
     def has_buffering(self):
         for event in self.event_list:
-            if event.event_type == "stall":
+            if event.event_type in ["stall", "freeze"]:
+                return True
+        return False
+
+    def has_framefreeze(self):
+        for event in self.event_list:
+            if event.event_type == "freeze":
                 return True
         return False
 
@@ -292,7 +304,14 @@ class Hrc:
         Return the buff events in the format required for .buff files in wallclock time
         """
         buff_events = []
-        if self.has_buffering():
+
+        if self.has_framefreeze():
+            for event in self.event_list:
+                if event.event_type == "freeze":
+                    buff_events.append(event.duration)
+            buff_events = sorted(buff_events)
+
+        elif self.has_buffering():
             total_media_dur = 0
             for event in self.event_list:
                 if event.event_type == "stall":
@@ -300,6 +319,7 @@ class Hrc:
                     buff_events.append([total_media_dur, stall_dur])
                 else:
                     total_media_dur += event.duration
+
         return buff_events
 
     def get_long_hrc_duration(self):
@@ -327,7 +347,7 @@ class Hrc:
         max_height = 0
 
         for event in self.event_list:
-            if event.event_type == "stall":
+            if event.event_type in ["stall", "freeze"]:
                 continue
             width = event.quality_level.width
             height = event.quality_level.height
@@ -446,6 +466,9 @@ class Segment:
         if (self.quality_level.video_codec == "h264") and (self.video_coding.encoder.casefold() == "bitmovin"):
             self.target_pix_fmt = "yuv420p"
 
+        if self.video_coding.forced_pix_fmt:
+            self.target_pix_fmt = self.video_coding.forced_pix_fmt
+
     def get_filename(self):
         """
         Return the filename of the segment to be generated.
@@ -459,7 +482,7 @@ class Segment:
             self.ext = "webm"
         elif self.video_coding.encoder.casefold() == "bitmovin" and self.quality_level.video_codec == "vp9":
             self.ext = "mkv"
-        elif self.quality_level.video_codec == "vp9":
+        elif self.quality_level.video_codec == "vp9" or self.quality_level.video_codec == "av1":
             self.ext = "mp4"
         else:
             logger.error("Wrong video codec for quality level " + self.quality_level)
@@ -582,6 +605,8 @@ class Event:
             if self.event_type == "stall":
                 # MMuel edited due to buffering with non-integer length
                 self.duration = float(duration)
+            elif self.event_type == "freeze":
+                self.duration = duration
             else:
                 if not float(duration).is_integer():
                     logger.error("All non-stalling events must have an integer duration, but you specified one with " + str(duration))
@@ -694,6 +719,8 @@ class Coding:
         self.coding_type = data['type']
 
         self.is_online = None
+        self.crf = None
+        self.forced_pix_fmt = None
 
         if self.coding_type == "video":
             self.encoder = data['encoder']
@@ -716,16 +743,21 @@ class Coding:
                         sys.exit(1)
                 else:
                     if 'crf' in data.keys():
-                        crf = int(data['crf'])
-                        if self.encoder == "libvpx-vp9" and crf not in range(0, 63):
-                            logger.error("only crf values between 0 to 63 allowed, error in coding " + self.coding_id)
-                            sys.exit(1)
-                        elif self.encoder in ["libx264", "libx264"] and crf not in range(0, 51):
-                            logger.error("only crf values between 0 to 51 allowed, error in coding " + self.coding_id)
-                            sys.exit(1)
-                        else:
-                            self.crf = crf
-                            self.passes = None
+
+                        self.crf = data['crf']
+                        self.passes = None
+
+
+                        # crf = int(data['crf'])
+                        # if self.encoder == "libvpx-vp9" and crf not in range(0, 63):
+                        #     logger.error("only crf values between 0 to 63 allowed, error in coding " + self.coding_id)
+                        #     sys.exit(1)
+                        # elif self.encoder in ["libx264", "libx264"] and crf not in range(0, 51):
+                        #     logger.error("only crf values between 0 to 51 allowed, error in coding " + self.coding_id)
+                        #     sys.exit(1)
+                        # else:
+                        #     self.crf = crf
+                            # self.passes = None
                     else:
                         logger.warn("number of passes not specified in coding " + self.coding_id + ", assuming 2")
                         self.passes = 2
@@ -745,17 +777,21 @@ class Coding:
             self.minrate = None
             self.maxrate = None
             self.bufsize = None
+            self.nvenc_options = None
 
             if 'profile' in data:
                 logger.warning("Setting profile in " + self.coding_id + " is not supported anymore.")
 
-            if 'pix_fmt' in data:
-                logger.warning("Setting pix_fmt in " + self.coding_id + " is not supported.")
+            # if 'pix_fmt' in data:
+            #     logger.warning("Setting pix_fmt in " + self.coding_id + " is not supported.")
 
             if 'iFrameInterval' in data:
                 self.iframe_interval = int(data['iFrameInterval'])
             elif not self.is_online:
                 logger.warn("Constant iFrame-Interval not set in coding " + self.coding_id + ", this is not recommended!")
+
+            if 'pixFmt' in data:
+                self.forced_pix_fmt = data['pixFmt']
 
             if 'bframes' in data:
                 if self.encoder == "libvpx-vp9":
@@ -801,6 +837,9 @@ class Coding:
 
             if 'bufsize' in data:
                 self.bufsize = float(data['bufsize'])
+
+            if 'nvenc_options' in data:
+                self.nvenc_options = data['nvenc_options']
 
             # enforce that both maxrate and bufsize are specified
             if self.encoder != "libvpx-vp9" and \
@@ -852,6 +891,9 @@ class QualityLevel:
             self.audio_codec = data['audioCodec']
             self.audio_bitrate = data['audioBitrate']
 
+        if 'videoCrf' in data:
+            self.video_crf = int(data['videoCrf'])
+
         self.hrcs = set()
 
     def __repr__(self):
@@ -862,8 +904,9 @@ class PostProcessing:
     def __init__(self, test_config, data):
         self.test_config = test_config
         self.processing_type = data['type']
+        self.display_frame_rate = 60
 
-        if self.processing_type not in ["pc", "tablet", "mobile, pc-home-hd, pc-home-uhd"]:
+        if self.processing_type not in ["pc", "tablet", "mobile", "hd-pc-home", "uhd-pc-home"]:
             logger.error("Wrong post processing type " + self.processing_type + ", must be pc/tablet/mobile")
             sys.exit(1)
 
@@ -884,6 +927,9 @@ class PostProcessing:
            ((self.display_height != self.coding_height) or (self.display_width != self.coding_width)):
             logger.error("PC post processing must have same coding and display width/height!")
             sys.exit(1)
+
+        if 'displayFrameRate' in data:
+            self.display_frame_rate = data['displayFrameRate']
 
     def __repr__(self):
         return "<PostProcessing " + self.processing_type.upper() + ">"
@@ -1275,6 +1321,9 @@ class TestConfig:
                         quality_level = self.quality_levels[event_data[0]]
                     elif 'stall' in event_data[0]:
                         event_type = 'stall'
+                        quality_level = None
+                    elif 'freeze' in event_data[0]:
+                        event_type = 'freeze'
                         quality_level = None
                     else:
                         logger.error("Wrong event type: " + str(event_data[0]) + ", must be quality level ID or 'stall'")

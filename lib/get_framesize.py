@@ -19,6 +19,7 @@ import logging
 import lib.cmd_utils as cmd_utils
 import os.path
 from os import remove
+import json
 
 logger = logging.getLogger('main')
 
@@ -260,3 +261,14 @@ def get_framesize_h265(filename, force):
                 return framesizes
             # format input to hex -> better to handle than chars
             byte[0] = hex(ord(tmp))
+
+
+def get_framesize_av1(filename, force=True):
+    framesizes = []
+    cmd = "ffprobe -select_streams v -show_frames -of json '" + filename + "'"
+    stdout, _ = cmd_utils.run_command(cmd, name="get framesizes info for " + str(filename))
+    info = json.loads(stdout)
+    info = info['frames']
+    framesizes = [int(ii['pkt_size']) for ii in info]
+
+    return framesizes

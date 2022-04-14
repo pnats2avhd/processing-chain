@@ -784,17 +784,11 @@ class Downloader:
         transport.close()
 
     def generate_full_segment(self, filename, codec, ten_bit=False, audio=False):
-
-        if ten_bit:
-            ffmpeg_version = "ffmpeg10"
-        else:
-            ffmpeg_version = "ffmpeg"
-
         root, ext = os.path.splitext(filename)
         full_video_path = os.path.join(self.video_segments_folder, filename)
         dload_path = os.path.join(self.video_segments_folder, root)
         video_outfile = os.path.join(dload_path, root + "_video_only" + ext)
-        concat_cmd = ffmpeg_version + " -y -i " + video_outfile + " -strict -2 -c copy " + full_video_path
+        concat_cmd = "ffmpeg -y -i " + video_outfile + " -strict -2 -c copy " + full_video_path
 
         video_init_element = None
         video_parts = []
