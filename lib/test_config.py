@@ -971,7 +971,7 @@ class TestConfig:
     REGEX_SRC_ID = r'SRC[\d]{3,5}'
     REGEX_HRC_ID = r'HRC[\d]{3,4}'
     REGEX_PVS_ID = r'P2(S|L)(TR|PT|IT|VL|XM)[\d]{2,3}_SRC[\d]{3,5}_HRC[\d]{3,4}'
-    REGEX_CPVS_ID = r'P2(S|L)(TR|PT|IT|VL|XM)[\d]{2,3}_SRC[\d]{3,5}_HRC[\d]{3,4}_(PC|MO|TA)'
+    REGEX_CPVS_ID = r'P2(S|L)(TR|PT|IT|VL|XM)[\d]{2,3}_SRC[\d]{3,5}_HRC[\d]{3,4}_(PC|MO|TA|HD|UH)'
 
     # required minimum version of YAML file syntax
     REQUIRED_YAML_SYNTAX_VERSION = 6

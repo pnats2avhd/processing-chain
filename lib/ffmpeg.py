@@ -1129,7 +1129,7 @@ def simple_encoding(pvs, overwrite, input_file, output_file, vopts, aopts="", fi
     return cmd
 
 
-def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_crf=17, mobile_vprofile="high", mobile_preset="fast"):
+def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, nonraw_crf=17, mobile_vprofile="high", mobile_preset="fast"):
     """
     Create the CPVS used for PC or mobile devices,
     for PC with proper pixel format in AVI container,
@@ -1141,7 +1141,7 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
         - post_processing {PostProcessing} -- post processing specification
         - rawvideo {boolean} -- output raw video instead of lossless codec
         - overwrite {boolean} -- force overwrite
-        - mobile_crf {int} -- CRF parameter for mobile encodes (default: 15)
+        - nonraw_crf {int} -- CRF parameter for mobile encodes (default: 17)
         - mobile_vprofile {str} -- video profile for mobile (default: baseline)
         - mobile_preset {str} -- video preset for mobile (default: baseline)
     """
@@ -1183,7 +1183,7 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
                 filters
             )
     else:
-        mobile_vopts = "-c:v libx264 -preset {mobile_preset} -pix_fmt yuv420p -crf {mobile_crf} -profile:v {mobile_vprofile} -movflags faststart".format(**locals())
+        mobile_vopts = "-c:v libx264 -preset {mobile_preset} -pix_fmt yuv420p -crf {nonraw_crf} -profile:v {mobile_vprofile} -movflags faststart".format(**locals())
 
         # filters = "-filter:v 'fps=fps={post_processing.display_frame_rate}".format(**locals())
         filters = "-filter:v '"
@@ -1193,7 +1193,8 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
             filters += ',' + pad_filter + "'"
         else:
             # filters += "'"
-            filters = ""
+            filters += 'scale={post_processing.display_width}:{post_processing.display_height}:flags=bicubic,setsar=1/1'.format(**locals()) + "'"
+            # filters = ""
 
         if test_config.is_short():
             mobile_aopts = "-an"
