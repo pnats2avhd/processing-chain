@@ -67,5 +67,6 @@ RUN pip3 install git+https://github.com/bitmovin/bitmovin-python.git@v1.21.0
 ENV NAME pnats_processing_chain
 RUN mkdir /proponent-databases
 COPY . /processing-chain
+RUN chown -R 1000:1000 /processing-chain
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/x86_64-linux-gnu/"
 
