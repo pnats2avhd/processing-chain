@@ -187,10 +187,13 @@ def run(cli_args, test_config=None):
             if cli_args.skip_online_services and pvs.is_online():
                 logger.warn("Skipping PVS {} because it is an online PVS".format(pvs))
                 continue
+            # add for-loop for post-processing here. What about naming convention? Not necessary for bbqcg
             current_command = ffmpeg.create_avpvs_short(
                     pvs,
                     overwrite=cli_args.force,
-                    scale_avpvs_tosource=cli_args.avpvs_src_fps)
+                    scale_avpvs_tosource=cli_args.avpvs_src_fps,
+                    force_60_fps=cli_args.force_60_fps,
+                    post_proc_id=0)
             cmd_runner.add_cmd(current_command,
                                name="Create AVPVS short for " + str(pvs)
                                )

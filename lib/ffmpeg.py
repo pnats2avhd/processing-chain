@@ -972,21 +972,25 @@ def encode_segment(segment, overwrite=False):
     return cmd
 
 
-def create_avpvs_short(pvs, overwrite=False, scale_avpvs_tosource=False):
+def create_avpvs_short(pvs, overwrite=False, scale_avpvs_tosource=False, force_60_fps=False, post_proc_id=0):
     """
     Decode the first segment and create AVPVS using FFV1 and FLAC.
     """
     test_config = pvs.test_config
 
     # FIXME: this only use the first post_processing-context now. Have to send each individual post processing context to create_avpvs_short and loop over it in p03/4 later. naming?
-    coding_width = test_config.post_processings[0].coding_width
-    coding_height = test_config.post_processings[0].coding_height
+    coding_width = test_config.post_processings[post_proc_id].coding_width
+    coding_height = test_config.post_processings[post_proc_id].coding_height
 
     output_file = pvs.get_avpvs_file_path()
+    fps_filter = ''
     if scale_avpvs_tosource:
         src_framerate = pvs.src.get_fps()
-    else:
+        fps_filter = ',fps={src_framerate}'
+    elif force_60_fps:
         src_framerate = 60.0
+        fps_filter = ',fps={src_framerate}'
+
 
     if overwrite:
         overwrite_spec = "-y"
@@ -1003,11 +1007,20 @@ def create_avpvs_short(pvs, overwrite=False, scale_avpvs_tosource=False):
         pvs.src.stream_info['coded_width'], pvs.src.stream_info['coded_height'],
         coding_width, coding_height)
 
+    # if hrc_res > avpvs_width, use hrc instead. 
+    # encoded_segment_height = pvs.segments[0].quality_level
+    encoded_segment_width = pvs.segments[0].quality_level.width
+    encoded_segment_height = pvs.segments[0].quality_level.height
+
+    if encoded_segment_height > avpvs_height:
+        avpvs_height = encoded_segment_height
+        avpvs_width = encoded_segment_width
+
     cmd = """
     ffmpeg -nostdin
     {overwrite_spec}
     -i {input_file}
-    -filter:v scale={avpvs_width}:{avpvs_height}:flags=bicubic,fps={src_framerate},setsar=1/1
+    -filter:v scale={avpvs_width}:{avpvs_height}:flags=bicubic{fps_filter},setsar=1/1
     -c:v ffv1 -threads 4 -level 3 -coder 1 -context 1 -slicecrc 1
     -pix_fmt {target_pix_fmt} -c:a flac
     {output_file}""".format(**locals())
@@ -1220,13 +1233,15 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
     else:
         mobile_vopts = "-c:v libx264 -preset {mobile_preset} -pix_fmt yuv420p -crf {mobile_crf} -profile:v {mobile_vprofile} -movflags faststart".format(**locals())
 
-        filters = "-filter:v 'fps=fps=60"
+        # filters = "-filter:v 'fps=fps=60"
+        filters = "-filter:v '"
         if (post_processing.display_height != post_processing.coding_height) or (avpvs_height < post_processing.coding_height):
             # special case for tablet where padding is needed, pad to display height
             pad_filter = "pad=width={post_processing.display_width}:height={post_processing.display_height}:x=(ow-iw)/2:y=(oh-ih)/2".format(**locals())
             filters += ',' + pad_filter + "'"
         else:
-            filters += "'"
+            # filters += "'"
+            filters = ""
 
         if test_config.is_short():
             mobile_aopts = "-an"

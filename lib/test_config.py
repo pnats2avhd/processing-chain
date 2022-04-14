@@ -863,7 +863,7 @@ class PostProcessing:
         self.test_config = test_config
         self.processing_type = data['type']
 
-        if self.processing_type not in ["pc", "tablet", "mobile"]:
+        if self.processing_type not in ["pc", "tablet", "mobile, pc-home-hd, pc-home-uhd"]:
             logger.error("Wrong post processing type " + self.processing_type + ", must be pc/tablet/mobile")
             sys.exit(1)
 
