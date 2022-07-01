@@ -1,5 +1,6 @@
 #FROM ubuntu:20.04
-FROM nvidia/cuda:11.0-base
+#FROM nvidia/cuda:11.0-base
+FROM nvidia/cuda:11.2.1-base-ubuntu20.04
 
 ARG DEBIAN_FRONTEND="noninteractive"
 ENV NVIDIA_DRIVER_CAPABILITIES all
