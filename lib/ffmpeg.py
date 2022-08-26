@@ -119,6 +119,10 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
     else:
         preset_cmd = ""
 
+    enc_options = ""
+    if segment.video_coding.enc_options:
+        enc_options = segment.video_coding.enc_options
+
     if encoder in ["libx264", "h264_nvenc"]:
         # construct rate control commands
         if segment.video_coding.crf:
@@ -137,10 +141,6 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         if iframe_interval:
             target_interval = int(target_fps * iframe_interval)
             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
-
-        nvenc_options = ""
-        if segment.video_coding.nvenc_options:
-            nvenc_options = segment.video_coding.nvenc_options
 
         x264_params = []
         x264_params_cmd = ""
@@ -164,7 +164,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         {x264_params_cmd}
         {preset_cmd}
         -pix_fmt {pix_fmt}
-        {nvenc_options}
+        {enc_options}
         {pass_cmd} {passlogfile_cmd}
         """.format(**locals())
 
@@ -225,17 +225,13 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         if len(x265_params) & (encoder == 'libx265'):
             x265_params_cmd = "-x265-params " + ":".join(x265_params)
 
-        nvenc_options = ""
-        if segment.video_coding.nvenc_options:
-            nvenc_options = segment.video_coding.nvenc_options
-
         cmd = """
         -c:v {encoder}
         {rate_control_cmd}
         {minrate_cmd}
         {x265_params_cmd}
         {preset_cmd}
-        {nvenc_options}
+        {enc_options}
         -pix_fmt {pix_fmt}
         """.format(**locals())
 
@@ -267,6 +263,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         -strict -2
         -quality {quality}
         -speed {speed}
+        {enc_options}
         -pix_fmt {pix_fmt}
         {pass_cmd} {passlogfile_cmd}
         """.format(**locals())
@@ -297,7 +294,9 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         -c:v {encoder}
         {rate_control_cmd}
         {iframe_interval_cmd}
-        -strict -2 -tile-columns 1 -tile-rows 0 -threads 4 -cpu-used 6 -row-mt 1 -enable-global-motion 0 -enable-intrabc 0 -enable-restoration 0
+        -strict -2 
+        -cpu-used 6 
+        {enc_options}
         -pix_fmt {pix_fmt}
         {pass_cmd} {passlogfile_cmd}
         """.format(**locals())

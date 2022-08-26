@@ -777,7 +777,7 @@ class Coding:
             self.minrate = None
             self.maxrate = None
             self.bufsize = None
-            self.nvenc_options = None
+            self.enc_options = None
 
             if 'profile' in data:
                 logger.warning("Setting profile in " + self.coding_id + " is not supported anymore.")
@@ -838,8 +838,8 @@ class Coding:
             if 'bufsize' in data:
                 self.bufsize = float(data['bufsize'])
 
-            if 'nvenc_options' in data:
-                self.nvenc_options = data['nvenc_options']
+            if 'enc_options' in data:
+                self.enc_options = data['enc_options']
 
             # enforce that both maxrate and bufsize are specified
             if self.encoder != "libvpx-vp9" and \
@@ -907,7 +907,7 @@ class PostProcessing:
         self.display_frame_rate = 60
 
         if self.processing_type not in ["pc", "tablet", "mobile", "hd-pc-home", "uhd-pc-home"]:
-            logger.error("Wrong post processing type " + self.processing_type + ", must be pc/tablet/mobile")
+            logger.error("Wrong post processing type " + self.processing_type + ", must be pc/tablet/mobile/\{hd|uhd\}-pc-home")
             sys.exit(1)
 
         try:
