@@ -80,4 +80,5 @@ RUN mkdir /proponent-databases
 COPY . /processing-chain
 RUN chown -R 1000:1000 /processing-chain
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/x86_64-linux-gnu/"
+RUN git config --global --add safe.directory /processing-chain
 

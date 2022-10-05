@@ -720,6 +720,7 @@ class Coding:
 
         self.is_online = None
         self.crf = None
+        self.cpu_used = 6
         self.forced_pix_fmt = None
 
         if self.coding_type == "video":
@@ -761,6 +762,9 @@ class Coding:
                     else:
                         logger.warn("number of passes not specified in coding " + self.coding_id + ", assuming 2")
                         self.passes = 2
+
+            if 'cpuUsed' in data.keys(): 
+                self.cpu_used = data['cpuUsed']
 
             # Optional with defaults
             self.speed = 1

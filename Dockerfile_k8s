@@ -62,3 +62,5 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 RUN pip3 install git+https://github.com/bitmovin/bitmovin-python.git@v1.21.0
 ENV NAME pnats_processing_chain
 RUN mkdir /proponent-databases
+RUN git config --global --add safe.directory /processing-chain
+

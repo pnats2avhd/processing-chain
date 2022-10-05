@@ -76,3 +76,5 @@ COPY . /processing-chain
 RUN chown -R 1000:1000 /processing-chain
 ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/x86_64-linux-gnu/"
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/vmaf/vmaf-2.3.0/libvmaf/build/src/
+RUN git config --global --add safe.directory /processing-chain
+

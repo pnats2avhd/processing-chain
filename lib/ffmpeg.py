@@ -269,6 +269,9 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         """.format(**locals())
 
     elif encoder == "libaom-av1":
+
+        cpu_used = segment.video_coding.cpu_used
+
         # construct rate control commands
         if segment.video_coding.crf:
             rate_control_cmd = "-b:v 0 -crf " + str(segment.quality_level.video_crf) + " "
@@ -295,7 +298,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         {rate_control_cmd}
         {iframe_interval_cmd}
         -strict -2 
-        -cpu-used 6 
+        -cpu-used {cpu_used}
         {enc_options}
         -pix_fmt {pix_fmt}
         {pass_cmd} {passlogfile_cmd}
