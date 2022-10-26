@@ -2,7 +2,7 @@
 
 This is the processing chain used to generate sequences for the P.NATS Phase 2 / AHVD-AS project from ITU-T SG12 and VQEG.
 
-> ⚠️ **Note:** This is an updated version of the chain using the newest dependencies from Ubuntu 20.04, and ffmpeg 4.3. It does not reflect what was used in the project at the time. To use that instead, please switch to the `master` branch.
+> ⚠️ **Note:** This is an updated version of the chain using the newest dependencies from Ubuntu 20.04, and ffmpeg 5.0. It does not reflect what was used in the project at the time. To use that instead, please switch to the `master` branch.
 
 Table of contents:
 
@@ -25,9 +25,10 @@ The processing chain is capable of taking in raw video, and producing the follow
 
 It can encode video with:
 
-- H.264/MPEG-4 Part 10 (x264)
-- H.265/MPEG-H Part 2 (x265)
+- H.264/MPEG-4 Part 10 (x264, and optionally nvenc)
+- H.265/MPEG-H Part 2 (x265, and optionally nvenc)
 - VP9 (libvpx-vp9)
+- AV1 (libaom-av1)
 
 ## Installation
 
@@ -43,6 +44,9 @@ Install the current Python package requirements by running:
 pip3 install --user poetry
 poetry install
 ```
+
+If you want to use the nvenc options for h264 and h265, using the docker-options are recommended to make sure 
+that matching versions for cuda etc. is installed.  
 
 ## Test configuration
 

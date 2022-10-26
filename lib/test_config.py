@@ -1094,8 +1094,9 @@ class TestConfig:
                             logger.error("path " + path + ", as specified in processingchain_defaults.yaml, does not exist in the virtual machine! Please create it first.")
                             sys.exit(1)
                         if not os.access(path, os.W_OK):
-                            logger.error("path " + path + ", as specified in processingchain_defaults.yaml, does not have write permissions for current user!")
-                            sys.exit(1)
+                            if not key == 'srcVid':        
+                                logger.error("path " + path + ", as specified in processingchain_defaults.yaml, does not have write permissions for current user!")
+                                sys.exit(1)
                         self.path_mapping[key] = path
                     else:
                         logger.warn(key + " is not a valid path identifier, ignoring")
