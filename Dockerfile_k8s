@@ -48,6 +48,15 @@ RUN meson build --buildtype release
 RUN ninja -vC build
 RUN ninja -vC build install
 
+RUN mkdir /ffmpeg_sources
+WORKDIR /ffmpeg_sources
+RUN git -C aom pull 2> /dev/null || git clone --depth 1 https://aomedia.googlesource.com/aom
+RUN mkdir -p aom_build
+WORKDIR /ffmpeg_sources/aom_build
+RUN PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DENABLE_SHARED=off -DENABLE_NASM=on ../aom 
+RUN PATH="$HOME/bin:$PATH" make -j 8
+RUN make install
+
 COPY ./docker/install_ffmpeg.sh /install_ffmpeg.sh
 RUN chmod +x /install_ffmpeg.sh && \
   /install_ffmpeg.sh && \
