@@ -31,6 +31,7 @@ RUN apt-get update -qq && apt-get install -qq -y \
   unzip \
   libnuma1 \
   libunistring-dev libaom-dev \
+  ninja-build meson \
   libnuma-dev \
   && rm -rf /var/lib/apt/lists/*
 
@@ -69,7 +70,11 @@ WORKDIR /processing-chain
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 RUN pip3 install git+https://github.com/bitmovin/bitmovin-python.git@v1.21.0
+RUN chown -R 1000:1000 /processing-chain
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib/x86_64-linux-gnu/"
 ENV NAME pnats_processing_chain
 RUN mkdir /proponent-databases
 RUN git config --global --add safe.directory /processing-chain
+
+
 
