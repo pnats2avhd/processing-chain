@@ -54,7 +54,8 @@ install_ffmpeg() {
     --enable-libvpx \
     --enable-libx264 \
     --enable-libx265 \
-    --enable-nonfree
+    --enable-nonfree \
+    --disable-doc
   PATH="$HOME/bin:$PATH" make -j 4
   make install
   make distclean
