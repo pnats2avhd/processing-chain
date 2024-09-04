@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 ARG DEBIAN_FRONTEND="noninteractive"
 
@@ -37,11 +37,14 @@ RUN chmod +x /install_ffmpeg.sh && \
 COPY . /processing-chain
 
 WORKDIR /processing-chain
-RUN pip3 install --no-cache-dir poetry && \
-  poetry config virtualenvs.create false && \
-  poetry install --no-interaction --no-ansi
+RUN apt-get update -qq && apt-get install -qq -y \
+  pipx && \
+  pipx install poetry && \
+  /root/.local/bin/poetry config virtualenvs.create false && \
+  /root/.local/bin/poetry install --no-interaction --no-ansi && \
+  rm -rf /var/lib/apt/lists/*
 
-ENV NAME pnats_processing_chain
+ENV NAME=pnats_processing_chain
 RUN mkdir /proponent-databases
 
-ENTRYPOINT ["poetry", "run", "python3"]
+ENTRYPOINT ["/root/.local/bin/poetry", "run", "python3"]
