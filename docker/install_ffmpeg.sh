@@ -36,9 +36,9 @@ install_ffmpeg() {
 
   # ffmpeg
   cd "$HOME/ffmpeg_sources"
-  wget -q -O ffmpeg50.tar.bz2 https://ffmpeg.org/releases/ffmpeg-5.0.tar.bz2
-  tar xjf ffmpeg50.tar.bz2
-  cd ffmpeg-5.0
+  wget -q -O ffmpeg702.tar.bz2 https://ffmpeg.org/releases/ffmpeg-7.0.2.tar.bz2
+  tar xjf ffmpeg702.tar.bz2
+  cd ffmpeg-7.0.2
   PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
     --prefix="$HOME/ffmpeg_build" \
     --pkg-config-flags="--static" \
@@ -54,9 +54,12 @@ install_ffmpeg() {
     --enable-libvpx \
     --enable-libx264 \
     --enable-libx265 \
+    --enable-nonfree \
     --enable-libaom \
+    --enable-nvenc \
     --enable-libvmaf \
-    --enable-nonfree
+    --extra-cflags=-I/usr/local/cuda/include \
+    --extra-ldflags=-L/usr/local/cuda/lib64
   PATH="$HOME/bin:$PATH" make -j 4
   make install
   make distclean

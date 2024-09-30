@@ -19,7 +19,8 @@ import os
 import re
 import sys
 from stat import S_ISDIR
-import bitmovin
+#import bitmovin
+from bitmovin_api_sdk import BitmovinApi as bitmovin
 import paramiko
 import yaml
 import youtube_dl

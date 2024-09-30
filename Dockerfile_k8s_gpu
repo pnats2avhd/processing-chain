@@ -1,10 +1,11 @@
-FROM nvidia/cuda:11.2.1-base-ubuntu20.04
+#FROM nvidia/cuda:12.4.0-devel-ubuntu22.04
+FROM ubuntu:22.04
 
 ARG DEBIAN_FRONTEND="noninteractive"
 ENV NVIDIA_DRIVER_CAPABILITIES all
 ENV NVIDIA_VISIBLE_DEVICES all
 
-RUN apt-get update -qq && apt-get install -qq -y \
+RUN apt update -qq && apt install -qq -y \
   autoconf \
   automake \
   build-essential \
@@ -40,15 +41,14 @@ RUN apt-get update -qq && apt-get install -qq -y \
 
 RUN mkdir /nvenc
 WORKDIR /nvenc
-#RUN git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
-RUN git clone https://github.com/FFmpeg/nv-codec-headers.git
+RUN git clone -b sdk/12.1 https://github.com/FFmpeg/nv-codec-headers.git
 RUN cd nv-codec-headers && make install
 
 RUN mkdir /vmaf
 WORKDIR /vmaf
-RUN wget -q -O v2.3.0.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v2.3.0.tar.gz
-RUN tar xvf v2.3.0.tar.gz
-WORKDIR /vmaf/vmaf-2.3.0/libvmaf
+RUN wget -q -O v3.0.0.tar.gz https://github.com/Netflix/vmaf/archive/refs/tags/v3.0.0.tar.gz
+RUN tar xvf v3.0.0.tar.gz
+WORKDIR /vmaf/vmaf-3.0.0/libvmaf
 RUN meson build --buildtype release
 RUN ninja -vC build
 RUN ninja -vC build install
@@ -62,17 +62,22 @@ RUN PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HO
 RUN PATH="$HOME/bin:$PATH" make -j 8
 RUN make install
 
-COPY ./docker/install_ffmpeg_gpu.sh /install_ffmpeg.sh
+COPY ./docker/install_ffmpeg.sh /install_ffmpeg.sh
 RUN chmod +x /install_ffmpeg.sh && \
   /install_ffmpeg.sh && \
   cp /root/bin/ffmpeg /usr/local/bin/ffmpeg && \
   cp /root/bin/ffprobe /usr/local/bin/ffprobe
 
-COPY requirements.txt /processing-chain/requirements.txt
+#RUN python3 -m pip install --break-system-packages pipenv
+
+COPY requirements_short.txt /processing-chain/requirements_used.txt
 WORKDIR /processing-chain
 
-RUN pip3 install --no-cache-dir -r requirements.txt
-RUN pip3 install git+https://github.com/bitmovin/bitmovin-python.git@v1.21.0
+#RUN PIPENV_VENV_IN_PROJECT=1 pipenv install -r requirements.txt
+#ENV PATH="/processing-chain/.venv/bin:$PATH"
+#RUN pip3 install --break-system-packages -r /processing-chain/requirements_used.txt
+RUN pip3 install -r /processing-chain/requirements_used.txt
+
 ENV NAME pnats_processing_chain
 RUN mkdir /proponent-databases
 COPY . /processing-chain
