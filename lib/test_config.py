@@ -35,8 +35,18 @@ from fractions import Fraction
 import lib.ffmpeg as ffmpeg
 import lib.cmd_utils as cmd_utils
 import pandas as pd
+import tempfile
 
 logger = logging.getLogger('main')
+
+
+def is_writable(path):
+    try:
+        testfile = tempfile.TemporaryFile(dir=path)
+        testfile.close()
+        return True
+    except OSError:
+        return False
 
 
 class Pvs:
@@ -488,13 +498,15 @@ class Segment:
             logger.error("Wrong video codec for quality level " + self.quality_level)
             sys.exit(1)
 
-        # Example: P2STR00_SRC000_Q0_98-100.mp4
+        # Example: P2STR00_SRC000_Q0_VC01_0001_98-100.mp4
         # FIXME: file name generated with truncating segment timestamps,
         # will this cause problems?
+
         return "_".join([
                 self.test_config.database_id,
                 self.src.src_id,
                 self.quality_level.ql_id,
+                self.video_coding.coding_id,
                 format(self.index, '04'),
                 str(int(self.start_time)) + '-' + str(int(self.end_time))
             ]) + "." + self.ext
@@ -650,6 +662,14 @@ class Src:
 
         self.file_path = os.path.join(test_config.get_src_vid_path(), self.filename)
         self.info_path = os.path.join(test_config.get_src_vid_path(), self.filename+'.yaml')
+        
+        if not is_writable(test_config.get_src_vid_path()):
+            if is_writable(test_config.get_src_vid_local_path()):
+                self.info_path = os.path.join(test_config.get_src_vid_local_path(), self.filename+'.yaml')
+            else:
+                logger.error('Not possible to write info.yaml for SRC, all directories are read only')
+                sys.exit(1)
+
 
     def locate_and_get_info(self):
         """

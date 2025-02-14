@@ -596,13 +596,13 @@ def get_src_info(src):
 
     cmd = "ffprobe -loglevel error -select_streams v -show_streams -of json '" + input_file + "'"
     if not os.path.isfile(src.info_path):
-        if not os.access(src.test_config.get_src_vid_path(), os.W_OK):
-            if os.access(src.test_config.get_src_vid_local_path(), os.W_OK):
-                info_path_folder = src.test_config.get_src_vid_local_path()
-                src.info_path = os.path.join(info_path_folder, src.get_src_file_name()+'.yaml')
-            else:
-                logger.error('Not possible to write info.yaml for SRC, all directories are read only')
-                sys.exit(1)
+        # if not os.access(src.test_config.get_src_vid_path(), os.W_OK):
+        #     if os.access(src.test_config.get_src_vid_local_path(), os.W_OK):
+        #         info_path_folder = src.test_config.get_src_vid_local_path()
+        #         src.info_path = os.path.join(info_path_folder, src.get_src_file_name()+'.yaml')
+        #     else:
+        #         logger.error('Not possible to write info.yaml for SRC, all directories are read only')
+        #         sys.exit(1)
     
         stdout, _ = cmd_utils.run_command(cmd, name="get SRC info for " + str(src))
         info = json.loads(stdout)
