@@ -660,7 +660,7 @@ def get_video_frame_info(segment, info_type="packet"):
         default_duration = next((x["duration_time"] for x in info if "duration_time" in x.keys()), "NaN")
 
         for packet_info in info:
-            frame_type = "I" if packet_info['flags'] == "K_" else "Non-I"
+            frame_type = "I" if "K_" in packet_info['flags'] else "Non-I"
 
             if 'dts_time' in packet_info.keys():
                 dts = float(packet_info['dts_time'])

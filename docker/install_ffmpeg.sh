@@ -39,7 +39,8 @@ install_ffmpeg() {
   wget -q -O ffmpeg702.tar.bz2 https://ffmpeg.org/releases/ffmpeg-7.0.2.tar.bz2
   tar xjf ffmpeg702.tar.bz2
   cd ffmpeg-7.0.2
-  PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
+  # PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
+  PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="/usr/local/lib/x86_64-linux-gnu/pkgconfig:$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
     --prefix="$HOME/ffmpeg_build" \
     --pkg-config-flags="--static" \
     --extra-cflags="-I$HOME/ffmpeg_build/include" \
