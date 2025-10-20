@@ -51,31 +51,6 @@ def check_requirements(skip=False):
     # Check version of processing chain
     logger.info("processing chain version: " + get_processing_chain_version())
 
-    if ".local/bin" not in os.environ["PATH"]:
-        logger.warn("$HOME/.local/bin is not in $PATH, which may cause problems later. Have you checked that .bash_profile contains it?")
-
-    # Check pip packages
-    requirements_file = os.path.join(
-        os.path.dirname(__file__), '..', 'requirements.txt'
-    )
-    if not os.path.isfile(requirements_file):
-        logger.error("requirements.txt file not found in root of processing chain. Do a 'git fetch && git reset --hard origin/master' to reset your processing chain")
-        sys.exit(1)
-
-    with open(requirements_file, 'r') as f:
-        dependencies = []
-        for requirements_line in f.readlines():
-            if requirements_line.startswith("git+"):
-                requirements_line = requirements_line.split("#egg=")[1]
-            dependencies.append(requirements_line.strip())
-        try:
-            logger.debug("checking dependencies: " + str(dependencies))
-            pkg_resources.require(dependencies)
-        except:
-            logger.warn("Python package requirements are not fulfilled. Please run the appropriate 'pip install' scripts from the README")
-            logger.warn("Specific conflict: " + str(sys.exc_info()[1]))
-            fail = True
-
     if fail and not skip:
         logger.error("requirements for running processing chain are not met, please make sure you follow all the suggestions printed above. If you absolutely need to continue, add the '--skip-requirements' option.")
         sys.exit(1)

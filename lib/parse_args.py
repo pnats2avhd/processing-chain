@@ -68,7 +68,7 @@ def parse_args(name, script=None):
         '-p', '--parallelism',
         default=4,
         type=int,
-        help='number of processes to start in parallel (use more if you have more RAM/CPU cores)'
+        help='number of processes to start in parallel (use more if you have more RAM/CPU cores).'
     )
     parser.add_argument(
         '-r', '--remove-intermediate',
@@ -85,6 +85,13 @@ def parse_args(name, script=None):
         help='define which scripts p00_processAll shall execute (e.g. "all", "1234", "34")',
         default='1234'
     )
+    if script == 1:
+        parser.add_argument(
+            '-g', '--set-gpu-loc',
+            default=-1,
+            type=int,
+            help='Choose an NVIDIA GPU ID for the processing to run on. Look in nvidia-smi to obtain the GPU ID number. Default, -1, is False.'
+        )
     # Options for p03 only:
     if script == 3:
         parser.add_argument(
@@ -94,9 +101,14 @@ def parse_args(name, script=None):
         )
         parser.add_argument(
             '-z', '--avpvs-src-fps',
-            action='store_false',
-            help='Do not use the SRC fps for the avpvs but instead upscale to 60 fps all the time'
+            action='store_true',
+            help='Use the SRC fps for the avpvs, (default is to use HRC framerate)'
         )
+        parser.add_argument(
+            '-f60', '--force-60-fps',
+            action='store_true',
+            help='Force avpvs framerate to 60 fps, (default is to use HRC framerate)'
+            )
     # Options for p04 only:
     if script == 4:
         parser.add_argument(
@@ -109,6 +121,11 @@ def parse_args(name, script=None):
             action='store_true',
             help='use rawvideo codec and MKV files as output for PC'
         )
+        parser.add_argument(
+            '-ccrf', '--nonraw-crf',
+            default=17,
+            help='Set CRF level for when using libx264 as CPVS encoder'
+            )
     # Developer options:
     parser.add_argument(
         '--skip-requirements',
