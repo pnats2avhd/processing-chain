@@ -2,7 +2,7 @@
 
 This is the processing chain used to generate sequences for the P.NATS Phase 2 / AHVD-AS project from ITU-T SG12 and VQEG.
 
-> ⚠️ **Note:** This is an updated version of the chain using the newest dependencies from Ubuntu 20.04, and ffmpeg 5.0. It does not reflect what was used in the project at the time. To use that instead, please switch to the `master` branch.
+> ⚠️ **Note:** This is an updated version of the chain using the newest dependencies from Ubuntu 24.04, and ffmpeg 7.0. It does not reflect what was used in the project at the time. To use that instead, please switch to the `pnats_ph2` branch.
 
 Table of contents:
 
@@ -34,8 +34,8 @@ It can encode video with:
 
 You need:
 
-- Python 3.8
-- Linux (tested with Ubuntu 20.04)
+- Python 3.8 (also testet with Python 3.12)
+- Linux (tested with Ubuntu 24.04)
 - The `ffmpeg` and `ffprobe` binaries placed in your `$PATH`
 
 Install the current Python package requirements by running:
