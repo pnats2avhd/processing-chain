@@ -70,7 +70,7 @@ WORKDIR /uvsource
 RUN wget -qO- https://astral.sh/uv/0.5.29/install.sh | env UV_INSTALL_DIR="/uvsource" sh
 ENV PATH="$PATH:/uvsource"
 
-COPY requirements_detailed.txt /processing-chain/requirements_used.txt
+COPY requirements.txt /processing-chain/requirements_used.txt
 WORKDIR /processing-chain
 RUN chown -R 1000:1000 /processing-chain
 USER 1000

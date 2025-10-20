@@ -34,15 +34,21 @@ It can encode video with:
 
 You need:
 
-- Python 3.8 (also testet with Python 3.12)
+- Python 3.8 (also testet with Python 3.11)
 - Linux (tested with Ubuntu 24.04)
 - The `ffmpeg` and `ffprobe` binaries placed in your `$PATH`
+- uv <https://docs.astral.sh/uv/getting-started/installation/>
+  
+We have chosen `uv` to take care of version requirements and dealing with environments. It is (probably) possible to run this with pipenv, pip, etc. as well but this has not been as thoroughly tested. It is also possible to run this on MacOS directly, but that is also not officially supported and tested. 
 
 Install the current Python package requirements by running:
 
 ```
-pip3 install --user poetry
-poetry install
+uv python install 3.11
+uv init
+uv add -r requirements.txt
+uv sync
+uv lock
 ```
 
 If you want to use the nvenc options for h264 and h265, using the docker-options are recommended to make sure 
@@ -90,11 +96,11 @@ git clone https://github.com/pnats2avhd/example-databases
 To run the processing chain, find the individual command usage here:
 
 ```
-./p00_processAll.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
-./p01_generateSegments.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
-./p02_generateMetadata.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
-./p03_generateAvPvs.py -c TEST_CONFIG [-fvnphrs|--filter-src|--filter-hrc|--filter-pvs|--spinner-path]
-./p04_generateCpvs.py -c TEST_CONFIG [-fvnphre|--filter-src|--filter-hrc|--filter-pvs|--preview-enc]
+uv run ./p00_processAll.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
+uv run ./p01_generateSegments.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
+uv run ./p02_generateMetadata.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
+uv run ./p03_generateAvPvs.py -c TEST_CONFIG [-fvnphrs|--filter-src|--filter-hrc|--filter-pvs|--spinner-path]
+uv run ./p04_generateCpvs.py -c TEST_CONFIG [-fvnphre|--filter-src|--filter-hrc|--filter-pvs|--preview-enc]
 ```
 
 The arguments common to all scripts are:
@@ -125,8 +131,6 @@ Some scripts have unique arguments:
 See  `docker/README.md` for more info.
 
 ## Acknowledgement
-
-<<<<<<< HEAD
 If you use this software in your research and/or for publications, please link back to the URL of this repository.  
 
 Here is a suggested citation in BibTeX format
