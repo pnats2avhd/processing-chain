@@ -740,6 +740,7 @@ class Coding:
 
         self.is_online = None
         self.crf = None
+        self.qp = None
         self.cpu_used = 6
         self.forced_pix_fmt = None
 
@@ -779,6 +780,9 @@ class Coding:
                         # else:
                         #     self.crf = crf
                             # self.passes = None
+                    if 'qp' in data.keys():
+                        self.qp = data['qp']
+                        self.passes = None
                     else:
                         logger.warn("number of passes not specified in coding " + self.coding_id + ", assuming 2")
                         self.passes = 2
@@ -917,6 +921,9 @@ class QualityLevel:
 
         if 'videoCrf' in data:
             self.video_crf = int(data['videoCrf'])
+
+        if 'videoQp' in data:
+            self.video_qp = int(data['videoQp'])
 
         self.hrcs = set()
 

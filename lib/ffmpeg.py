@@ -127,6 +127,8 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         # construct rate control commands
         if segment.video_coding.crf:
             rate_control_cmd = "-crf " + str(segment.quality_level.video_crf) + " "
+        elif segment.video_coding.qp:
+            rate_control_cmd = "-qp " + str(segment.quality_level.video_qp) + " "
         else:
             rate_control_cmd = "-b:v " + str(bitrate) + "k "
 
@@ -177,6 +179,8 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
 
         if segment.video_coding.crf:
             rate_control_cmd = "-crf " + str(segment.quality_level.video_crf) + " "
+        elif segment.video_coding.qp:
+            rate_control_cmd = "-qp " + str(segment.quality_level.video_qp) + " "
         else:
             rate_control_cmd = "-b:v " + str(bitrate) + "k "
 
@@ -275,6 +279,8 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         # construct rate control commands
         if segment.video_coding.crf:
             rate_control_cmd = "-b:v 0 -crf " + str(segment.quality_level.video_crf) + " "
+        elif segment.video_coding.qp:
+            rate_control_cmd = "-b:v 0 -qp " + str(segment.quality_level.video_qp) + " "
         else:
             rate_control_cmd = "-b:v " + str(bitrate) + "k "
 
@@ -906,7 +912,7 @@ def encode_segment(segment, overwrite=False):
         {output_file}
         """.format(**locals())
 
-    elif segment.video_coding.crf:
+    elif (segment.video_coding.crf or segment.video_coding.qp):
         video_encoder_cmd = _get_video_encoder_command(segment)
 
         cmd = """
