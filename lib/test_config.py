@@ -793,7 +793,7 @@ class Coding:
                         # else:
                         #     self.crf = crf
                             # self.passes = None
-                    if 'qp' in data.keys():
+                    elif 'qp' in data.keys():
                         self.qp = data['qp']
                         self.passes = None
                     else:
