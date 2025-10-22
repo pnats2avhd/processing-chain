@@ -660,15 +660,28 @@ class Src:
             self.youtube_url = data['youtubeUrl']
             self.is_youtube = True
 
-        self.file_path = os.path.join(test_config.get_src_vid_path(), self.filename)
-        self.info_path = os.path.join(test_config.get_src_vid_path(), self.filename+'.yaml')
+        if isinstance(test_config.get_src_vid_path(), list):
+            for possible_src_folder in test_config.get_src_vid_path():
+                if os.path.exists(os.path.join(possible_src_folder, self.filename)):
+                    break
+            self.file_path = os.path.join(possible_src_folder, self.filename)
+            self.info_path = os.path.join(possible_src_folder, self.filename+'.yaml')
+            if not is_writable(possible_src_folder):
+                if is_writable(test_config.get_src_vid_local_path()):
+                    self.info_path = os.path.join(test_config.get_src_vid_local_path(), self.filename+'.yaml')
+                else:
+                    logger.error('Not possible to write info.yaml for SRC, all directories are read only')
+                    sys.exit(1)
+        else:
+            self.file_path = os.path.join(test_config.get_src_vid_path(), self.filename)
+            self.info_path = os.path.join(test_config.get_src_vid_path(), self.filename+'.yaml')
         
-        if not is_writable(test_config.get_src_vid_path()):
-            if is_writable(test_config.get_src_vid_local_path()):
-                self.info_path = os.path.join(test_config.get_src_vid_local_path(), self.filename+'.yaml')
-            else:
-                logger.error('Not possible to write info.yaml for SRC, all directories are read only')
-                sys.exit(1)
+            if not is_writable(test_config.get_src_vid_path()):
+                if is_writable(test_config.get_src_vid_local_path()):
+                    self.info_path = os.path.join(test_config.get_src_vid_local_path(), self.filename+'.yaml')
+                else:
+                    logger.error('Not possible to write info.yaml for SRC, all directories are read only')
+                    sys.exit(1)
 
 
     def locate_and_get_info(self):
@@ -1117,21 +1130,32 @@ class TestConfig:
                 for key, path in overrides.items():
                     # only override valid keys
                     if key in self.path_mapping.keys():
-                        if not os.path.isdir(path):
-                            logger.error("path " + path + ", as specified in processingchain_defaults.yaml, does not exist in the virtual machine! Please create it first.")
-                            sys.exit(1)
-                        if not os.access(path, os.W_OK):
-                            if not key == 'srcVid':        
-                                logger.error("path " + path + ", as specified in processingchain_defaults.yaml, does not have write permissions for current user!")
+                        if isinstance(path, list):
+                            for current_path in path:
+                                if not os.path.isdir(current_path):
+                                    logger.error("path " + current_path + ", as specified in processingchain_defaults.yaml, does not exist in the virtual machine! Please create it first.")
+                                    sys.exit(1)
+                                if not os.access(current_path, os.W_OK):
+                                    if not key == 'srcVid':        
+                                        logger.error("path " + current_path + ", as specified in processingchain_defaults.yaml, does not have write permissions for current user!")
+                                        sys.exit(1)    
+                        else:
+                            if not os.path.isdir(path):
+                                logger.error("path " + path + ", as specified in processingchain_defaults.yaml, does not exist in the virtual machine! Please create it first.")
                                 sys.exit(1)
+                            if not os.access(path, os.W_OK):
+                                if not key == 'srcVid':        
+                                    logger.error("path " + path + ", as specified in processingchain_defaults.yaml, does not have write permissions for current user!")
+                                    sys.exit(1)
                         self.path_mapping[key] = path
                     else:
                         logger.warn(key + " is not a valid path identifier, ignoring")
 
         for key, path in self.path_mapping.items():
-            if not os.path.isdir(path):
-                logger.warn("path " + path + " does not exist; creating empty folder")
-                os.makedirs(path)
+            if not key == 'srcVid':
+                if not os.path.isdir(path):
+                    logger.warn("path " + path + " does not exist; creating empty folder")
+                    os.makedirs(path)
 
         logger.debug(pprint.pformat(self.path_mapping))
 
@@ -1479,6 +1503,12 @@ class TestConfig:
         """
         Return the path to srcVid folder
         """
+        # if isinstance(self.path_mapping["srcVid"], list):
+        #     correct_path = ''
+
+
+        #     return correct_path
+        # else:
         return self.path_mapping["srcVid"]
 
     def get_src_vid_local_path(self):

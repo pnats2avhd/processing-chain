@@ -78,7 +78,11 @@ def run(cli_args):
                 # replace all absolute paths
                 seg_cmd = cmd.replace(test_config.get_video_segments_path() + "/", "")
                 seg_cmd = seg_cmd.replace(check_requirements.get_processing_chain_dir() + "/logs/", "")
-                seg_cmd = seg_cmd.replace(test_config.get_src_vid_path() + "/", "")
+                if isinstance(test_config.get_src_vid_path(), list):
+                    for src_folder in test_config.get_src_vid_path():
+                        seg_cmd = seg_cmd.replace(src_folder + "/", "")
+                else:
+                    seg_cmd = seg_cmd.replace(test_config.get_src_vid_path() + "/", "")
 
                 logger.debug("writing segment logfile to " + logfile)
                 if not cli_args.dry_run:
