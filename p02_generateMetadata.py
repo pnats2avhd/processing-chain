@@ -102,6 +102,10 @@ def run(cli_args, test_config=None):
                 get_framesize.delete_packets(pvs_vfi)
                 segment_framesizes = get_framesize.get_framesize_vp9(*get_framesize_args)
                 cleaned_framesizes.extend(segment_framesizes)
+            elif segment_codec == "av1":
+                # this does not work yet, get_framesize_av1 is not yet implemented. Will just return 0.0
+                segment_framesizes = get_framesize.get_framesize_av1(*get_framesize_args)
+                cleaned_framesizes.extend(segment_framesizes)
             else:
                 logger.error("Invalid codec")
                 sys.exit(1)

@@ -52,138 +52,10 @@ def calculate_avpvs_video_dimensions(SRC_width, SRC_height, postproc_enc_width, 
                     avpvs_height += 1
                 dims[1] = avpvs_height
         else:
-            dims[1] = SRC_height
+            if not (int(1000*SRC_aspect_ratio) == int(1000*postproc_aspect_ratio)):
+                dims[1] = SRC_height
 
     return(dims)
-
-
-def _get_video_encoder_command_crf(segment, logfile=""):
-    encoder = segment.video_coding.encoder
-    scenecut = segment.video_coding.scenecut
-    pix_fmt = segment.target_pix_fmt
-    crf = segment.video_coding.crf
-    iframe_interval = segment.video_coding.iframe_interval
-    bframes = segment.video_coding.bframes
-
-    # get target FPS
-    _, target_fps = _get_fps(segment)
-    if target_fps is None:
-        target_fps = segment.src.get_fps()
-
-    if encoder == "libx264":
-        # construct rate control commands
-        rate_control_cmd = "-crf " + str(crf) + " "
-
-        if segment.video_coding.maxrate:
-            rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate) + "k "
-        if segment.video_coding.bufsize:
-            rate_control_cmd += "-bufsize " + str(segment.video_coding.bufsize) + "k "
-        if segment.video_coding.minrate:
-            rate_control_cmd += "-minrate " + str(segment.video_coding.minrate) + "k "
-
-        # keyframe interval
-        if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
-            iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
-        else:
-            iframe_interval_cmd = ""
-
-        x264_params = []
-
-        # scenecuts
-        if not scenecut:
-            x264_params.append("scenecut=-1")
-
-        # bframes
-        if bframes is not None:
-            x264_params.append("bframes=" + str(bframes))
-
-        # join all params
-        if len(x264_params):
-            x264_params_cmd = "-x264-params " + ":".join(x264_params)
-        else:
-            x264_params_cmd = ""
-
-        cmd = """
-        -c:v libx264
-        {rate_control_cmd}
-        {iframe_interval_cmd}
-        {x264_params_cmd}
-        -pix_fmt {pix_fmt}
-        """.format(**locals())
-
-    elif encoder == "libx265":
-
-        rate_control_cmd = "-crf " + str(crf) + " "
-
-        # construct rate control commands
-        x265_params = []
-
-        minrate_cmd = ""
-        if segment.video_coding.maxrate:
-            x265_params.append("vbv-maxrate=" + str(int(segment.video_coding.maxrate)))
-        if segment.video_coding.bufsize:
-            x265_params.append("vbv-bufsize=" + str(int(segment.video_coding.bufsize)))
-        if segment.video_coding.minrate:
-            minrate_cmd = "-minrate " + str(int(segment.video_coding.minrate)) + "k "
-
-        # keyframe interval
-        if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
-            x265_params.append("keyint=" + str(target_interval))
-            x265_params.append("min-keyint=" + str(target_interval))
-
-        # scenecut
-        if scenecut is not False:
-            x265_params.append("scenecut=0")
-
-        # bframes
-        if bframes is not None:
-            x265_params.append("bframes=" + str(bframes))
-
-        x265_params_cmd = ""
-        if len(x265_params):
-            x265_params_cmd = "-x265-params " + ":".join(x265_params)
-
-        cmd = """
-        -c:v libx265
-        {rate_control_cmd}
-        {x265_params_cmd}
-        {minrate_cmd}
-        -pix_fmt {pix_fmt}
-        """.format(**locals())
-
-    elif encoder == "libvpx-vp9":
-        # construct rate control commands
-        rate_control_cmd = "-b:v 0 -crf " + str(crf) + " "
-
-        if segment.video_coding.maxrate_factor:
-            rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate) + "k "
-        if segment.video_coding.bufsize_factor:
-            rate_control_cmd += "-bufsize " + str(segment.video_coding.bufsize) + "k "
-        if segment.video_coding.minrate_factor:
-            rate_control_cmd += "-minrate " + str(segment.video_coding.minrate) + "k "
-
-        # keyframe interval
-        if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
-            iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
-        else:
-            iframe_interval_cmd = ""
-
-        cmd = """
-        -c:v libvpx-vp9
-        {rate_control_cmd}
-        {iframe_interval_cmd}
-        -strict -2
-        -pix_fmt {pix_fmt}
-        """.format(**locals())
-
-    else:
-        logger.error("wrong encoder: " + str(encoder))
-        sys.exit(1)
-
-    return cmd
 
 
 def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=""):
@@ -202,7 +74,8 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
     #bitrate = segment.quality_level.video_bitrate
     """
 
-    bitrate = segment.target_video_bitrate
+    if not segment.video_coding.crf:
+        bitrate = segment.target_video_bitrate
 
     # settings that will already be defined
     encoder = segment.video_coding.encoder
@@ -210,6 +83,8 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
     speed = segment.video_coding.speed
     scenecut = segment.video_coding.scenecut
     pix_fmt = segment.target_pix_fmt
+    # if segment.video_coding.forced_pix_fmt:
+    #     pix_fmt = segment.video_coding.forced_pix_fmt
 
     # get target FPS
     _, target_fps = _get_fps(segment)
@@ -244,9 +119,19 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
     else:
         preset_cmd = ""
 
-    if encoder == "libx264":
+    enc_options = ""
+    if segment.video_coding.enc_options:
+        enc_options = segment.video_coding.enc_options
+
+    if encoder in ["libx264", "h264_nvenc"]:
         # construct rate control commands
-        rate_control_cmd = "-b:v " + str(bitrate) + "k "
+        if segment.video_coding.crf:
+            rate_control_cmd = "-crf " + str(segment.quality_level.video_crf) + " "
+        elif segment.video_coding.qp:
+            rate_control_cmd = "-qp " + str(segment.quality_level.video_qp) + " "
+        else:
+            rate_control_cmd = "-b:v " + str(bitrate) + "k "
+
         if segment.video_coding.maxrate_factor:
             rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate_factor * bitrate) + "k "
         if segment.video_coding.bufsize_factor:
@@ -260,47 +145,69 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
 
         x264_params = []
+        x264_params_cmd = ""
 
         # scenecuts
-        if scenecut is False:
+        if not scenecut:
             x264_params.append("scenecut=-1")
 
         # bframes
-        if bframes is not None:
+        if bframes:
             x264_params.append("bframes=" + str(bframes))
 
         # join all params
-        if len(x264_params):
+        if len(x264_params) & (encoder == 'libx264'):
             x264_params_cmd = "-x264-params " + ":".join(x264_params)
-        else:
-            x264_params_cmd = ""
 
         cmd = """
-        -c:v libx264
+        -c:v {encoder}
         {rate_control_cmd}
         {iframe_interval_cmd}
         {x264_params_cmd}
         {preset_cmd}
         -pix_fmt {pix_fmt}
+        {enc_options}
         {pass_cmd} {passlogfile_cmd}
         """.format(**locals())
 
-    elif encoder == "libx265":
+    elif encoder in ["libx265", "hevc_nvenc"]:
+
+        # Supported pixel formats: yuv420p nv12 p010le yuv444p p016le yuv444p16le bgr0 rgb0 cuda
+        # For hevc_nvenc
+
         # construct rate control commands
+
+        if segment.video_coding.crf:
+            rate_control_cmd = "-crf " + str(segment.quality_level.video_crf) + " "
+        elif segment.video_coding.qp:
+            rate_control_cmd = "-qp " + str(segment.quality_level.video_qp) + " "
+        else:
+            rate_control_cmd = "-b:v " + str(bitrate) + "k "
+
         x265_params = []
         minrate_cmd = ""
         if segment.video_coding.maxrate_factor:
-            x265_params.append("vbv-maxrate=" + str(int(segment.video_coding.maxrate_factor * bitrate)))
+            if encoder == 'libx265':
+                x265_params.append("vbv-maxrate=" + str(int(segment.video_coding.maxrate_factor * bitrate)))
+            else:
+                minrate_cmd += "-maxrate " + str(int(segment.video_coding.maxrate_factor * bitrate)) + "k "
         if segment.video_coding.bufsize_factor:
-            x265_params.append("vbv-bufsize=" + str(int(segment.video_coding.bufsize_factor * bitrate)))
+            if encoder == 'libx265':
+                x265_params.append("vbv-bufsize=" + str(int(segment.video_coding.bufsize_factor * bitrate)))        
+            else:
+                minrate_cmd += "-bufsize " + str(int(segment.video_coding.bufsize_factor * bitrate)) + "k "
+            # x265_params.append("vbv-bufsize=" + str(int(segment.video_coding.bufsize_factor * bitrate)))
         if segment.video_coding.minrate_factor:
-            minrate_cmd = "-minrate " + str(int(segment.video_coding.minrate_factor * bitrate)) + "k "
+            minrate_cmd += "-minrate " + str(int(segment.video_coding.minrate_factor * bitrate)) + "k "
 
         # keyframe interval
         if iframe_interval:
             target_interval = int(target_fps * iframe_interval)
-            x265_params.append("keyint=" + str(target_interval))
-            x265_params.append("min-keyint=" + str(target_interval))
+            if encoder == 'libx265':
+                x265_params.append("keyint=" + str(target_interval))
+                x265_params.append("min-keyint=" + str(target_interval))
+            else:
+                preset_cmd += ' -g ' + str(target_interval)
 
         # scenecut
         if scenecut is not False:
@@ -319,20 +226,26 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
             x265_params.append("stats='" + str(logfile) + "'")
 
         x265_params_cmd = ""
-        if len(x265_params):
+        if len(x265_params) & (encoder == 'libx265'):
             x265_params_cmd = "-x265-params " + ":".join(x265_params)
 
         cmd = """
-        -c:v libx265
-        -b:v {bitrate}k {minrate_cmd}
+        -c:v {encoder}
+        {rate_control_cmd}
+        {minrate_cmd}
         {x265_params_cmd}
         {preset_cmd}
+        {enc_options}
         -pix_fmt {pix_fmt}
         """.format(**locals())
 
     elif encoder == "libvpx-vp9":
         # construct rate control commands
-        rate_control_cmd = "-b:v " + str(bitrate) + "k "
+        if segment.video_coding.crf:
+            rate_control_cmd = "-b:v 0 -crf " + str(segment.quality_level.video_crf) + " "
+        else:
+            rate_control_cmd = "-b:v " + str(bitrate) + "k "
+
         if segment.video_coding.maxrate_factor:
             rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate_factor * bitrate) + "k "
         if segment.video_coding.bufsize_factor:
@@ -344,17 +257,59 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         if iframe_interval:
             target_interval = int(target_fps * iframe_interval)
             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
+        else:
+            iframe_interval_cmd = ""
 
         cmd = """
-        -c:v libvpx-vp9
+        -c:v {encoder}
         {rate_control_cmd}
         {iframe_interval_cmd}
         -strict -2
         -quality {quality}
         -speed {speed}
+        {enc_options}
         -pix_fmt {pix_fmt}
         {pass_cmd} {passlogfile_cmd}
         """.format(**locals())
+
+    elif encoder == "libaom-av1":
+
+        cpu_used = segment.video_coding.cpu_used
+
+        # construct rate control commands
+        if segment.video_coding.crf:
+            rate_control_cmd = "-b:v 0 -crf " + str(segment.quality_level.video_crf) + " "
+        elif segment.video_coding.qp:
+            rate_control_cmd = "-b:v 0 -qp " + str(segment.quality_level.video_qp) + " "
+        else:
+            rate_control_cmd = "-b:v " + str(bitrate) + "k "
+
+        if segment.video_coding.maxrate_factor:
+            rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate_factor * bitrate) + "k "
+        if segment.video_coding.minrate_factor:
+            rate_control_cmd += "-minrate " + str(segment.video_coding.minrate_factor * bitrate) + "k "
+
+        # keyframe interval
+        if iframe_interval:
+            target_interval = int(target_fps * iframe_interval)
+            iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
+        else:
+            iframe_interval_cmd = ""
+
+        if not scenecut:
+            iframe_interval_cmd += " -sc_threshold 0 "
+
+        cmd = """
+        -c:v {encoder}
+        {rate_control_cmd}
+        {iframe_interval_cmd}
+        -strict -2 
+        -cpu-used {cpu_used}
+        {enc_options}
+        -pix_fmt {pix_fmt}
+        {pass_cmd} {passlogfile_cmd}
+        """.format(**locals())
+        #-strict -2 -tile-columns 1 -tile-rows 0 -threads 4 -cpu-used 6 -row-mt 1 -usage 1 -enable-global-motion 0 -enable-intrabc 0 -enable-restoration 0
 
     else:
         logger.error("wrong encoder: " + str(encoder))
@@ -398,7 +353,7 @@ def _get_fps(segment):
         # if the SRC is 50/60 we take half of it:
         elif orig_fps == 50:
             fps = 25
-        elif orig_fps == 60:
+        elif orig_fps in [60, 120]:
             fps = 30
         else:
             logger.error("SRC " + str(segment.src) + " has unsupported frame rate (" + str(orig_fps) + ")")
@@ -413,6 +368,8 @@ def _get_fps(segment):
         elif orig_fps < 50:
             logger.error("fps for " + str(segment) + " were requested as 50/60 but SRC has only " + str(orig_fps))
             sys.exit(1)
+        elif orig_fps == 120:
+            fps = 60
         else:
             logger.error("SRC " + str(segment.src) + " has unsupported frame rate (" + str(orig_fps) + ")")
             sys.exit(1)
@@ -486,7 +443,7 @@ def get_segment_info(segment):
     - `video_target_bitrate`: Target bitrate of the video stream in kBit/s (may be empty/unknown)
     - `video_width`: Width in pixels
     - `video_height`: Height in pixels
-    - `video_codec`: Video codec (`h264`, `hevc`, `vp9`)
+    - `video_codec`: Video codec (`h264`, `hevc`, `vp9`, `av1`)
     - `video_profile`: Video profile
     - `audio_duration`: Duration of the audio in `s.msec`
     - `audio_sample_rate`: Audio sample rate in Hz
@@ -645,9 +602,19 @@ def get_src_info(src):
 
     cmd = "ffprobe -loglevel error -select_streams v -show_streams -of json '" + input_file + "'"
     if not os.path.isfile(src.info_path):
+        # if not os.access(src.test_config.get_src_vid_path(), os.W_OK):
+        #     if os.access(src.test_config.get_src_vid_local_path(), os.W_OK):
+        #         info_path_folder = src.test_config.get_src_vid_local_path()
+        #         src.info_path = os.path.join(info_path_folder, src.get_src_file_name()+'.yaml')
+        #     else:
+        #         logger.error('Not possible to write info.yaml for SRC, all directories are read only')
+        #         sys.exit(1)
+    
         stdout, _ = cmd_utils.run_command(cmd, name="get SRC info for " + str(src))
         info = json.loads(stdout)
         returndata = info["streams"][0]
+        if '/' in returndata['r_frame_rate']:
+            returndata['r_frame_rate'] = str(int(eval(returndata['r_frame_rate'])))
 
         videosize = get_stream_size(src)
         audiosize = get_stream_size(src, 'audio')
@@ -699,7 +666,7 @@ def get_video_frame_info(segment, info_type="packet"):
         default_duration = next((x["duration_time"] for x in info if "duration_time" in x.keys()), "NaN")
 
         for packet_info in info:
-            frame_type = "I" if packet_info['flags'] == "K_" else "Non-I"
+            frame_type = "I" if "K_" in packet_info['flags'] else "Non-I"
 
             if 'dts_time' in packet_info.keys():
                 dts = float(packet_info['dts_time'])
@@ -812,11 +779,6 @@ def encode_segment(segment, overwrite=False):
     input_file = segment.src.file_path
     output_file = os.path.join(test_config.get_video_segments_path(), segment.get_filename())
 
-    if segment.uses_10_bit():
-        ffmpeg_cmd = "ffmpeg10"
-    else:
-        ffmpeg_cmd = "ffmpeg"
-
     if overwrite:
         overwrite_spec = "-y"
     else:
@@ -824,6 +786,10 @@ def encode_segment(segment, overwrite=False):
         if os.path.isfile(output_file):
             logger.warn("output " + output_file + " already exists, will not convert. Use --force to force overwriting.")
             return None
+
+    nr_threads_opt = ' -threads 1'
+    if segment.quality_level.video_codec == 'av1':
+        nr_threads_opt = ''
 
     # Filters
     filter_list = []
@@ -838,31 +804,32 @@ def encode_segment(segment, overwrite=False):
     orig_fps = float(Fraction(segment.src.stream_info["r_frame_rate"]))
 
     if fps_cmd:
-        adv_select = ''
         fps_perc = 100 * calculated_fps / orig_fps
+        if int(fps_perc) != 100:
+            adv_select = ''
 
-        if int(fps_perc) == 50:  # fps 60->30, 24->12
-            adv_select = "mod(n+1,2)"
-        elif int(fps_perc) == 40:  # fps 60->24
-            adv_select = "not(mod(n,5))+not(mod(n-3,5))"
-        elif int(fps_perc) == 33:  # fps 60->20, 24->8
-            adv_select = "not(mod(n,3))"
-        elif int(fps_perc) == 25:  # fps 60->15, 24->6
-            adv_select = "not(mod(n,4))"
-        elif int(fps_perc) == 80:  # # fps 30->24, this usually does not look good
-            adv_select = "mod(n+1,5)"
-        elif int(fps_perc) == 30:  # fps 50->15
-            adv_select = "not(mod(n,10)) + not(mod(n-3,10)) + not(mod(n-7,10))"
-        elif int(fps_perc) == 60:  # fps 25->15
-            adv_select = "not(mod(n,5))+not(mod(n-3,5))+not(mod(n-2,5))"
-        elif fps_perc == 62.5:  # fps 24->15
-            adv_select = "not(mod(n,8))+not(mod(n-3,8))+not(mod(n-2,8))+not(mod(n-5,8))+not(mod(n-6,8))"
-        else:
-            logger.error("Frame rate conversion from " + str(orig_fps) + " to " + str(calculated_fps) + " is not supported in segment " + str(segment))
-            sys.exit(1)
+            if int(fps_perc) == 50:  # fps 60->30, 24->12
+                adv_select = "mod(n+1,2)"
+            elif int(fps_perc) == 40:  # fps 60->24
+                adv_select = "not(mod(n,5))+not(mod(n-3,5))"
+            elif int(fps_perc) == 33:  # fps 60->20, 24->8
+                adv_select = "not(mod(n,3))"
+            elif int(fps_perc) == 25:  # fps 60->15, 24->6
+                adv_select = "not(mod(n,4))"
+            elif int(fps_perc) == 80:  # # fps 30->24, this usually does not look good
+                adv_select = "mod(n+1,5)"
+            elif int(fps_perc) == 30:  # fps 50->15
+                adv_select = "not(mod(n,10)) + not(mod(n-3,10)) + not(mod(n-7,10))"
+            elif int(fps_perc) == 60:  # fps 25->15
+                adv_select = "not(mod(n,5))+not(mod(n-3,5))+not(mod(n-2,5))"
+            elif fps_perc == 62.5:  # fps 24->15
+                adv_select = "not(mod(n,8))+not(mod(n-3,8))+not(mod(n-2,8))+not(mod(n-5,8))+not(mod(n-6,8))"
+            else:
+                logger.error("Frame rate conversion from " + str(orig_fps) + " to " + str(calculated_fps) + " is not supported in segment " + str(segment))
+                sys.exit(1)
 
-        filter_list.append("select=\'" + adv_select + "\'")
-        filter_list.append("fps=fps=" + str(calculated_fps))
+            filter_list.append("select=\'" + adv_select + "\'")
+        filter_list.append("fps=fps=" + str(calculated_fps))    
     else:
         filter_list.append("fps=fps=" + str(orig_fps))
 
@@ -884,7 +851,7 @@ def encode_segment(segment, overwrite=False):
         common_opts = """
         -nostdin
         -ss {segment.start_time} -i {input_file}
-        -threads 1
+        {nr_threads_opt}
         -t {segment.duration}
         -video_track_timescale 90000
         -filter:v {filters}
@@ -892,13 +859,11 @@ def encode_segment(segment, overwrite=False):
         """.format(**locals())
 
         # Rate control and other options
-        log_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logs")
-        if not os.path.isdir(log_path):
-            logger.warn("Log path " + log_path + " does not exist; will create folder.")
-            os.makedirs(log_path)
+        log_path = test_config.get_logs_path()
+
         passlogfile = os.path.join(
             log_path,
-            os.path.splitext(os.path.basename(output_file))[0]
+            'passlogfile_' + os.path.splitext(os.path.basename(output_file))[0]
         )
         video_encoder_cmd_pass1 = _get_video_encoder_command(segment, current_pass=1, total_passes=2, logfile=passlogfile)
         video_encoder_cmd_pass2 = _get_video_encoder_command(segment, current_pass=2, total_passes=2, logfile=passlogfile)
@@ -912,7 +877,7 @@ def encode_segment(segment, overwrite=False):
             logger.error("unknown segment extension " + segment.ext)
 
         pass1_cmd = " ".join([
-            ffmpeg_cmd,
+            "ffmpeg",
             "-y",
             common_opts,
             video_encoder_cmd_pass1,
@@ -921,7 +886,7 @@ def encode_segment(segment, overwrite=False):
             "/dev/null"
         ])
         pass2_cmd = " ".join([
-            ffmpeg_cmd,
+            "ffmpeg",
             overwrite_spec,
             common_opts,
             video_encoder_cmd_pass2,
@@ -935,10 +900,10 @@ def encode_segment(segment, overwrite=False):
         video_encoder_cmd = _get_video_encoder_command(segment)
 
         cmd = """
-        {ffmpeg_cmd} -nostdin
+        ffmpeg -nostdin
         {overwrite_spec}
         -ss {segment.start_time} -i {input_file}
-        -threads 1
+        {nr_threads_opt}
         -t {segment.duration}
         -video_track_timescale 90000
         -filter:v {filters}
@@ -947,14 +912,14 @@ def encode_segment(segment, overwrite=False):
         {output_file}
         """.format(**locals())
 
-    elif segment.video_coding.crf:
-        video_encoder_cmd = _get_video_encoder_command_crf(segment)
+    elif (segment.video_coding.crf or segment.video_coding.qp):
+        video_encoder_cmd = _get_video_encoder_command(segment)
 
         cmd = """
-        {ffmpeg_cmd} -nostdin
+        ffmpeg -nostdin
         {overwrite_spec}
         -ss {segment.start_time} -i {input_file}
-        -threads 1
+        {nr_threads_opt}
         -t {segment.duration}
         -video_track_timescale 90000
         -filter:v {filters}
@@ -972,21 +937,29 @@ def encode_segment(segment, overwrite=False):
     return cmd
 
 
-def create_avpvs_short(pvs, overwrite=False, scale_avpvs_tosource=False):
+def create_avpvs_short(pvs, overwrite=False, scale_avpvs_tosource=False, force_60_fps=False, post_proc_id=0):
     """
     Decode the first segment and create AVPVS using FFV1 and FLAC.
     """
     test_config = pvs.test_config
 
     # FIXME: this only use the first post_processing-context now. Have to send each individual post processing context to create_avpvs_short and loop over it in p03/4 later. naming?
-    coding_width = test_config.post_processings[0].coding_width
-    coding_height = test_config.post_processings[0].coding_height
+    coding_width = test_config.post_processings[post_proc_id].coding_width
+    coding_height = test_config.post_processings[post_proc_id].coding_height
 
-    output_file = pvs.get_avpvs_file_path()
+    fps_filter = ''
+    if pvs.has_buffering():
+        output_file = pvs.get_avpvs_wo_buffer_file_path()
+    else:
+        output_file = pvs.get_avpvs_file_path()
+
     if scale_avpvs_tosource:
         src_framerate = pvs.src.get_fps()
-    else:
+        fps_filter = ',fps={src_framerate}'
+    elif force_60_fps:
         src_framerate = 60.0
+        fps_filter = ',fps={src_framerate}'
+
 
     if overwrite:
         overwrite_spec = "-y"
@@ -1003,11 +976,20 @@ def create_avpvs_short(pvs, overwrite=False, scale_avpvs_tosource=False):
         pvs.src.stream_info['coded_width'], pvs.src.stream_info['coded_height'],
         coding_width, coding_height)
 
+    # if hrc_res > avpvs_width, use hrc instead. 
+    # encoded_segment_height = pvs.segments[0].quality_level
+    encoded_segment_width = pvs.segments[0].quality_level.width
+    encoded_segment_height = pvs.segments[0].quality_level.height
+
+    if encoded_segment_height > avpvs_height:
+        avpvs_height = encoded_segment_height
+        avpvs_width = encoded_segment_width
+
     cmd = """
     ffmpeg -nostdin
     {overwrite_spec}
     -i {input_file}
-    -filter:v scale={avpvs_width}:{avpvs_height}:flags=bicubic,fps={src_framerate},setsar=1/1
+    -filter:v scale={avpvs_width}:{avpvs_height}:flags=bicubic{fps_filter},setsar=1/1
     -c:v ffv1 -threads 4 -level 3 -coder 1 -context 1 -slicecrc 1
     -pix_fmt {target_pix_fmt} -c:a flac
     {output_file}""".format(**locals())
@@ -1164,7 +1146,7 @@ def simple_encoding(pvs, overwrite, input_file, output_file, vopts, aopts="", fi
     return cmd
 
 
-def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_crf=15, mobile_vprofile="high", mobile_preset="fast"):
+def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, nonraw_crf=17, mobile_vprofile="high", mobile_preset="fast"):
     """
     Create the CPVS used for PC or mobile devices,
     for PC with proper pixel format in AVI container,
@@ -1176,7 +1158,7 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
         - post_processing {PostProcessing} -- post processing specification
         - rawvideo {boolean} -- output raw video instead of lossless codec
         - overwrite {boolean} -- force overwrite
-        - mobile_crf {int} -- CRF parameter for mobile encodes (default: 15)
+        - nonraw_crf {int} -- CRF parameter for mobile encodes (default: 17)
         - mobile_vprofile {str} -- video profile for mobile (default: baseline)
         - mobile_preset {str} -- video preset for mobile (default: baseline)
     """
@@ -1194,7 +1176,7 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
     aformat_normalize = ''
     if post_processing.processing_type in ["pc", "tv"]:
         vcodec, target_pix_fmt = pvs.get_vcodec_and_pix_fmt_for_cpvs(rawvideo=rawvideo)
-        filters = "-af aresample=48000 -filter:v 'fps=fps=60"
+        filters = "-af aresample=48000 -filter:v 'fps=fps={post_processing.display_frame_rate}".format(**locals())
 
         # videos with smaller height will be padded to full height
         if avpvs_height < post_processing.coding_height:
@@ -1218,15 +1200,18 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
                 filters
             )
     else:
-        mobile_vopts = "-c:v libx264 -preset {mobile_preset} -pix_fmt yuv420p -crf {mobile_crf} -profile:v {mobile_vprofile} -movflags faststart".format(**locals())
+        mobile_vopts = "-c:v libx264 -preset {mobile_preset} -pix_fmt yuv420p -crf {nonraw_crf} -profile:v {mobile_vprofile} -movflags faststart".format(**locals())
 
-        filters = "-filter:v 'fps=fps=60"
+        # filters = "-filter:v 'fps=fps={post_processing.display_frame_rate}".format(**locals())
+        filters = "-filter:v '"
         if (post_processing.display_height != post_processing.coding_height) or (avpvs_height < post_processing.coding_height):
             # special case for tablet where padding is needed, pad to display height
             pad_filter = "pad=width={post_processing.display_width}:height={post_processing.display_height}:x=(ow-iw)/2:y=(oh-ih)/2".format(**locals())
             filters += ',' + pad_filter + "'"
         else:
-            filters += "'"
+            # filters += "'"
+            filters += 'scale={post_processing.display_width}:{post_processing.display_height}:flags=bicubic,setsar=1/1'.format(**locals()) + "'"
+            # filters = ""
 
         if test_config.is_short():
             mobile_aopts = "-an"
@@ -1235,7 +1220,15 @@ def create_cpvs(pvs, post_processing, rawvideo=False, overwrite=False, mobile_cr
             aformat_normalize = "-c:a aac -b:a 512k"
             mobile_aopts = "-c:a aac -b:a 512k -t {total_duration}".format(**locals())
 
-        cmd = simple_encoding(pvs, overwrite, input_file, output_file, mobile_vopts, mobile_aopts, filters)
+        cmd = simple_encoding(
+                pvs, 
+                overwrite, 
+                input_file, 
+                output_file, 
+                mobile_vopts, 
+                mobile_aopts, 
+                filters
+            )
 
     # add audio normalization step to -23dBFS RMS
     if test_config.is_long():
