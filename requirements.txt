@@ -1,7 +1,7 @@
 bcrypt==4.2.0
 bitmovin-api-sdk @ git+https://github.com/bitmovin/bitmovin-api-sdk-python.git@7e7fc1f253b4c3b6234340234fbaf995270c4f37
 bitmovin-python @ git+https://github.com/bitmovin/bitmovin-python.git@7340cb3dca542fa70c770ebb7a0f9acfcf1b12a4
-bufferer==0.22.1
+bufferer==0.24.1
 certifi==2024.8.30
 cffi==1.17.0
 chardet==3.0.4

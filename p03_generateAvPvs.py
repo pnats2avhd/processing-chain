@@ -51,11 +51,11 @@ def write_to_p03_logfile(pvs, cmd_list):
             if cmd is not None:
                 seg_cmd = cmd.replace(pvs.test_config.get_video_segments_path() + "/", "")
                 seg_cmd = seg_cmd.replace(check_requirements.get_processing_chain_dir() + "/logs/", "")
-                if isinstance(test_config.get_src_vid_path(), list):
-                    for src_folder in test_config.get_src_vid_path():
+                if isinstance(pvs.test_config.get_src_vid_path(), list):
+                    for src_folder in pvs.test_config.get_src_vid_path():
                         seg_cmd = seg_cmd.replace(src_folder + "/", "")
                 else:
-                    seg_cmd = seg_cmd.replace(test_config.get_src_vid_path() + "/", "")
+                    seg_cmd = seg_cmd.replace(pvs.test_config.get_src_vid_path() + "/", "")
                 lf.write("ffmpegCommand: " + seg_cmd + "\n")
 
 
@@ -239,7 +239,7 @@ def run(cli_args, test_config=None):
             else:
                 stalling_type_options = '-s {cli_args.spinner_path}'.format(**locals())
 
-            cmd = 'bufferer -i {input_file} -o {output_file} -b {bufferstring} --force-framerate --black-frame' \
+            cmd = 'bufferer -i {input_file} -o {output_file} -b "{bufferstring}" --force-framerate --black-frame' \
                   ' -v ffv1 -a pcm_s16le -x {pix_fmt} {stalling_type_options} {overwrite_spec}'.format(**locals())
             cmd_name = str(pvs) + ' buffering'
 
