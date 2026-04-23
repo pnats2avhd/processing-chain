@@ -272,3 +272,14 @@ def get_framesize_av1(filename, force=True):
     framesizes = [int(ii['pkt_size']) for ii in info]
 
     return framesizes
+
+
+def get_framesize_vvc(filename, force=True):
+    framesizes = []
+    cmd = "ffprobe -select_streams v -show_frames -of json '" + filename + "'"
+    stdout, _ = cmd_utils.run_command(cmd, name="get framesizes info for " + str(filename))
+    info = json.loads(stdout)
+    info = info['frames']
+    framesizes = [int(ii['pkt_size']) for ii in info]
+
+    return framesizes

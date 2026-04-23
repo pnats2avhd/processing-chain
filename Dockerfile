@@ -50,6 +50,18 @@ WORKDIR /ffmpeg_sources/aom_build
 RUN cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="/usr/local" -DENABLE_SHARED=off -DENABLE_NASM=on ../aom
 RUN make -j$(nproc) && make install
 
+WORKDIR /ffmpeg_sources
+RUN git clone --depth 1 --branch v1.12.0 https://github.com/fraunhoferhhi/vvenc.git
+WORKDIR /ffmpeg_sources/vvenc
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="/usr/local" -DCMAKE_INSTALL_LIBDIR="lib/x86_64-linux-gnu" -DBUILD_SHARED_LIBS=ON
+RUN cmake --build build -j 1 && cmake --install build && ldconfig
+
+WORKDIR /ffmpeg_sources
+RUN git clone --depth 1 --branch v2.3.0 https://github.com/fraunhoferhhi/vvdec.git
+WORKDIR /ffmpeg_sources/vvdec
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="/usr/local" -DCMAKE_INSTALL_LIBDIR="lib/x86_64-linux-gnu" -DBUILD_SHARED_LIBS=ON
+RUN cmake --build build -j 1 && cmake --install build && ldconfig
+
 COPY ./docker/install_ffmpeg.sh /install_ffmpeg.sh
 RUN chmod +x /install_ffmpeg.sh && /install_ffmpeg.sh 
 RUN cp /root/bin/ffmpeg /usr/local/bin/ffmpeg && \

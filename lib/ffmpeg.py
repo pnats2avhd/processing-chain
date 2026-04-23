@@ -311,6 +311,37 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
         """.format(**locals())
         #-strict -2 -tile-columns 1 -tile-rows 0 -threads 4 -cpu-used 6 -row-mt 1 -usage 1 -enable-global-motion 0 -enable-intrabc 0 -enable-restoration 0
 
+    elif encoder == "libvvenc":
+        # construct rate control commands
+        if segment.video_coding.qp:
+            rate_control_cmd = "-qp " + str(segment.quality_level.video_qp) + " "
+        else:
+            rate_control_cmd = "-b:v " + str(bitrate) + "k "
+
+        if segment.video_coding.maxrate_factor:
+            rate_control_cmd += "-maxrate " + str(segment.video_coding.maxrate_factor * bitrate) + "k "
+        if segment.video_coding.bufsize_factor:
+            rate_control_cmd += "-bufsize " + str(segment.video_coding.bufsize_factor * bitrate) + "k "
+        if segment.video_coding.minrate_factor:
+            rate_control_cmd += "-minrate " + str(segment.video_coding.minrate_factor * bitrate) + "k "
+
+        # keyframe interval
+        if iframe_interval:
+            target_interval = int(target_fps * iframe_interval)
+            iframe_interval_cmd = "-g " + str(target_interval)
+        else:
+            iframe_interval_cmd = ""
+
+        cmd = """
+        -c:v {encoder}
+        {rate_control_cmd}
+        {iframe_interval_cmd}
+        {preset_cmd}
+        {enc_options}
+        -pix_fmt {pix_fmt}
+        {pass_cmd} {passlogfile_cmd}
+        """.format(**locals())
+
     else:
         logger.error("wrong encoder: " + str(encoder))
         sys.exit(1)
@@ -788,7 +819,7 @@ def encode_segment(segment, overwrite=False):
             return None
 
     nr_threads_opt = ' -threads 1'
-    if segment.quality_level.video_codec == 'av1':
+    if segment.quality_level.video_codec in ('av1', 'vvc'):
         nr_threads_opt = ''
 
     # Filters

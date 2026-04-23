@@ -8,6 +8,7 @@
 # - x265 (8/10 bit)
 # - fdk-aac
 # - vpx (8/10 bit)
+# - vvenc/vvdec (built separately in Dockerfile)
 #
 # https://trac.ffmpeg.org/wiki/CompilationGuide/Ubuntu
 #
@@ -36,19 +37,16 @@ install_ffmpeg() {
 
   # ffmpeg
   cd "$HOME/ffmpeg_sources"
-  # wget -q -O ffmpeg702.tar.bz2 https://ffmpeg.org/releases/ffmpeg-7.0.2.tar.bz2
-  # tar xjf ffmpeg702.tar.bz2
-  # cd ffmpeg-7.0.2
   wget -q -O ffmpeg81.tar.bz2 https://ffmpeg.org/releases/ffmpeg-8.1.tar.bz2
   tar xjf ffmpeg81.tar.bz2
   cd ffmpeg-8.1
-  # PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
-  PATH="$HOME/bin:$PATH" PKG_CONFIG_PATH="/usr/local/lib/x86_64-linux-gnu/pkgconfig:$HOME/ffmpeg_build/lib/pkgconfig" ./configure \
+  export PKG_CONFIG_PATH="/usr/local/lib/x86_64-linux-gnu/pkgconfig:$HOME/ffmpeg_build/lib/pkgconfig"
+  PATH="$HOME/bin:$PATH" ./configure \
     --prefix="$HOME/ffmpeg_build" \
     --pkg-config-flags="--static" \
-    --extra-cflags="-I$HOME/ffmpeg_build/include" \
-    --extra-ldflags="-L$HOME/ffmpeg_build/lib" \
-    --extra-libs="-lpthread -lm" \
+    --extra-cflags="-I$HOME/ffmpeg_build/include -I/usr/local/cuda/include -I/usr/local/include -fno-lto" \
+    --extra-ldflags="-L$HOME/ffmpeg_build/lib -L/usr/local/cuda/lib64 -L/usr/local/lib/x86_64-linux-gnu -fno-lto" \
+    --extra-libs="-lpthread -lm -lstdc++" \
     --bindir="$HOME/bin" \
     --enable-gpl \
     --enable-libfdk-aac \
@@ -60,11 +58,10 @@ install_ffmpeg() {
     --enable-libx265 \
     --enable-nonfree \
     --enable-libaom \
+    --enable-libvvenc \
     --enable-nvenc \
-    --enable-libvmaf \
-    --extra-cflags=-I/usr/local/cuda/include \
-    --extra-ldflags=-L/usr/local/cuda/lib64
-  PATH="$HOME/bin:$PATH" make -j 4
+    --enable-libvmaf
+  PATH="$HOME/bin:$PATH" make -j 1
   make install
   make distclean
 

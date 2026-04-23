@@ -486,7 +486,7 @@ class Segment:
 
         Here, "seq" is the quality index of the segment.
         """
-        if self.quality_level.video_codec == "h264" or self.quality_level.video_codec == "h265":
+        if self.quality_level.video_codec in ("h264", "h265", "vvc"):
             self.ext = "mp4"
         elif self.video_coding.encoder == "youtube" and self.quality_level.video_codec == "vp9":
             self.ext = "webm"
