@@ -709,16 +709,31 @@ class Src:
         """
         Find file_path for the SRC file, if it exists. Otherwise break.
         """
-        # look for SRC in joint folder first
-        if not os.path.exists(self.file_path):
-            self.file_path = os.path.join(self.test_config.get_src_vid_local_path(), self.filename)
-            if not os.path.exists(self.file_path):
-                logger.error("SRC " + os.path.basename(self.file_path) + " does not exist, neither in " + self.test_config.get_src_vid_local_path() + " nor " + self.test_config.get_src_vid_path() + "!")
-                logger.error("Make sure you have all the SRCs in this folder, or set the folder to a different one using the processingchain_defaults.yaml file.")
-                sys.exit(1)
-            else:
-                logger.debug("SRC " + self.filename + " not found in " + self.test_config.get_src_vid_path() + ", " +
-                             "falling back to local folder at " + self.test_config.get_src_vid_local_path())
+        if os.path.exists(self.file_path):
+            return
+
+        # try each srcVid path if it's a list
+        src_vid_path = self.test_config.get_src_vid_path()
+        search_paths = src_vid_path if isinstance(src_vid_path, list) else [src_vid_path]
+
+        for folder in search_paths:
+            candidate = os.path.join(folder, self.filename)
+            if os.path.exists(candidate):
+                self.file_path = candidate
+                return
+
+        # fall back to local path
+        local_path = os.path.join(self.test_config.get_src_vid_local_path(), self.filename)
+        if os.path.exists(local_path):
+            self.file_path = local_path
+            logger.debug("SRC " + self.filename + " not found in " + str(src_vid_path) + ", " +
+                         "falling back to local folder at " + self.test_config.get_src_vid_local_path())
+            return
+
+        logger.error("SRC " + self.filename + " does not exist in any of: " + str(search_paths) +
+                     " or " + self.test_config.get_src_vid_local_path())
+        logger.error("Make sure you have all the SRCs in this folder, or set the folder to a different one using the processingchain_defaults.yaml file.")
+        sys.exit(1)
 
     def get_fps(self):
         """
@@ -754,6 +769,7 @@ class Coding:
         self.is_online = None
         self.crf = None
         self.qp = None
+        self.passes = None
         self.cpu_used = 6
         self.forced_pix_fmt = None
 
@@ -776,29 +792,18 @@ class Coding:
                     if self.passes not in [1, 2]:
                         logger.error("only 1-pass or 2-pass encoding allowed, error in coding " + self.coding_id)
                         sys.exit(1)
-                else:
-                    if 'crf' in data.keys():
 
-                        self.crf = data['crf']
+                if 'crf' in data.keys():
+                    self.crf = data['crf']
+                    if self.passes is None:
                         self.passes = None
-
-
-                        # crf = int(data['crf'])
-                        # if self.encoder == "libvpx-vp9" and crf not in range(0, 63):
-                        #     logger.error("only crf values between 0 to 63 allowed, error in coding " + self.coding_id)
-                        #     sys.exit(1)
-                        # elif self.encoder in ["libx264", "libx264"] and crf not in range(0, 51):
-                        #     logger.error("only crf values between 0 to 51 allowed, error in coding " + self.coding_id)
-                        #     sys.exit(1)
-                        # else:
-                        #     self.crf = crf
-                            # self.passes = None
-                    elif 'qp' in data.keys():
-                        self.qp = data['qp']
+                elif 'qp' in data.keys():
+                    self.qp = data['qp']
+                    if self.passes is None:
                         self.passes = None
-                    else:
-                        logger.warn("number of passes not specified in coding " + self.coding_id + ", assuming 2")
-                        self.passes = 2
+                elif self.passes is None:
+                    logger.warn("number of passes not specified in coding " + self.coding_id + ", assuming 2")
+                    self.passes = 2
 
             if 'cpuUsed' in data.keys(): 
                 self.cpu_used = data['cpuUsed']
@@ -1501,14 +1506,8 @@ class TestConfig:
 
     def get_src_vid_path(self):
         """
-        Return the path to srcVid folder
+        Return the path to srcVid folder (string or list of strings)
         """
-        # if isinstance(self.path_mapping["srcVid"], list):
-        #     correct_path = ''
-
-
-        #     return correct_path
-        # else:
         return self.path_mapping["srcVid"]
 
     def get_src_vid_local_path(self):

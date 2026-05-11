@@ -313,7 +313,9 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
 
     elif encoder == "libvvenc":
         # construct rate control commands
-        if segment.video_coding.qp:
+        if segment.video_coding.crf:
+            rate_control_cmd = "-qp " + str(segment.quality_level.video_crf) + " "
+        elif segment.video_coding.qp:
             rate_control_cmd = "-qp " + str(segment.quality_level.video_qp) + " "
         else:
             rate_control_cmd = "-b:v " + str(bitrate) + "k "
