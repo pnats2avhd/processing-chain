@@ -407,9 +407,9 @@ def _get_fps(segment):
 
     # use a given fraction (e.g. 2/3) of the original
     elif "/" in str(fps_spec):
-        frac = float(Fraction(fps_spec))
-        orig_fps = segment.src.get_fps()
-        fps = orig_fps * frac
+        frac = Fraction(fps_spec)
+        orig_fps_frac = Fraction(segment.src.stream_info["r_frame_rate"])
+        fps = float(orig_fps_frac * frac)
         # sanity check:
         if (fps > 60) or (fps < 12):
             logger.warn("fps for " + str(segment) + " were calculated as " + str(fps) + " which does not seem right")
@@ -645,7 +645,10 @@ def get_src_info(src):
         info = json.loads(stdout)
         returndata = info["streams"][0]
         if '/' in returndata['r_frame_rate']:
-            returndata['r_frame_rate'] = str(int(eval(returndata['r_frame_rate'])))
+            num, den = returndata['r_frame_rate'].split('/')
+            if int(num) % int(den) == 0:
+                returndata['r_frame_rate'] = str(int(num) // int(den))
+            # else: keep the fractional form (e.g. "2997/50") for precision
 
         videosize = get_stream_size(src)
         audiosize = get_stream_size(src, 'audio')
