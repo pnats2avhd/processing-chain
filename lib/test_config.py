@@ -1242,6 +1242,7 @@ class TestConfig:
                             start_time=current_timestamp,
                             duration=required_segment_duration
                         )
+                        segment.uses_src_duration = (pvs.hrc.segment_duration == "src_duration")
                         current_timestamp += required_segment_duration
                         segment_index += 1
                         logger.debug("adding segment " + str(segment))

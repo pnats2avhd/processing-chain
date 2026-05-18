@@ -880,6 +880,9 @@ def encode_segment(segment, overwrite=False):
     else:
         audio_encoder_cmd = ""
 
+    # Omit -t when using src_duration (encode entire source)
+    duration_opt = "" if getattr(segment, 'uses_src_duration', False) else "-t {segment.duration}".format(**locals())
+
     # Construct command for pass 1 and 2
     if segment.video_coding.passes == 2:
 
@@ -888,7 +891,7 @@ def encode_segment(segment, overwrite=False):
         -nostdin
         -ss {segment.start_time} -i {input_file}
         {nr_threads_opt}
-        -t {segment.duration}
+        {duration_opt}
         -video_track_timescale 90000
         -filter:v {filters}
         {audio_encoder_cmd}
@@ -940,7 +943,7 @@ def encode_segment(segment, overwrite=False):
         {overwrite_spec}
         -ss {segment.start_time} -i {input_file}
         {nr_threads_opt}
-        -t {segment.duration}
+        {duration_opt}
         -video_track_timescale 90000
         -filter:v {filters}
         {video_encoder_cmd}
@@ -956,7 +959,7 @@ def encode_segment(segment, overwrite=False):
         {overwrite_spec}
         -ss {segment.start_time} -i {input_file}
         {nr_threads_opt}
-        -t {segment.duration}
+        {duration_opt}
         -video_track_timescale 90000
         -filter:v {filters}
         {video_encoder_cmd}
