@@ -336,6 +336,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
 
         cmd = """
         -c:v {encoder}
+        -movflags +negative_cts_offsets
         {rate_control_cmd}
         {iframe_interval_cmd}
         {preset_cmd}
