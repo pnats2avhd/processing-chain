@@ -733,13 +733,19 @@ def get_video_frame_info(segment, info_type="packet"):
                 pts = float(frame_info['pts_time'])
             else:
                 pts = "NaN"
+            if 'pkt_duration_time' in frame_info.keys():
+                duration = float(frame_info['pkt_duration_time'])
+            elif 'duration_time' in frame_info.keys():
+                duration = float(frame_info['duration_time'])
+            else:
+                duration = "NaN"
             ret.append(OrderedDict([
                 ('segment', segment.get_filename()),
                 ('index', index),
                 ('frame_type', frame_info['pict_type']),
                 ('pts', pts),
                 ('size', int(frame_info['pkt_size'])),
-                ('duration', float(frame_info['pkt_duration_time']))
+                ('duration', duration)
             ]))
             index += 1
     else:
@@ -765,7 +771,10 @@ def fix_durations(frame_info):
     for current_frame, next_frame in zip(a, b):
         if current_frame['duration'] != 'NaN':
             continue
-        duration = round(next_frame['dts'] - current_frame['dts'], 6)
+        ts_key = 'dts' if 'dts' in next_frame else 'pts'
+        if next_frame[ts_key] == "NaN" or current_frame[ts_key] == "NaN":
+            continue
+        duration = round(next_frame[ts_key] - current_frame[ts_key], 6)
         current_frame['duration'] = duration
         prev_duration = duration
 
