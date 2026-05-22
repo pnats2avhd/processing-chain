@@ -283,3 +283,35 @@ def get_framesize_vvc(filename, force=True):
     framesizes = [int(ii['pkt_size']) for ii in info]
 
     return framesizes
+
+
+def delete_packets_vvc(pvs_vfi, frame_count):
+    """
+    Remove non-frame packets from VFI for VVC.
+    VVC may have extra packets (parameter sets, filler) that
+    don't correspond to decoded frames.
+    """
+    if len(pvs_vfi) == frame_count:
+        return
+
+    # Remove zero-size packets first (parameter sets / filler)
+    i = 0
+    while i < len(pvs_vfi) and len(pvs_vfi) > frame_count:
+        if int(pvs_vfi[i]["size"]) == 0:
+            del pvs_vfi[i]
+        else:
+            i += 1
+
+    # If still mismatched, remove duplicate-DTS packets (merge sizes)
+    if len(pvs_vfi) > frame_count:
+        i = 1
+        while i < len(pvs_vfi) and len(pvs_vfi) > frame_count:
+            if abs(pvs_vfi[i]["dts"] - pvs_vfi[i - 1]["dts"]) < 0.0011:
+                pvs_vfi[i - 1]["size"] = int(pvs_vfi[i - 1]["size"]) + int(pvs_vfi[i]["size"])
+                del pvs_vfi[i]
+            else:
+                i += 1
+
+    # Re-index
+    for idx, vf in enumerate(pvs_vfi):
+        vf["index"] = idx
