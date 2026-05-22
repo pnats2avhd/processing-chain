@@ -544,7 +544,10 @@ class Segment:
         Return a list of dicts with video frame info, in presentation order
         """
         if not self.video_frame_info:
-            self.video_frame_info = ffmpeg.get_video_frame_info(self)
+            if self.quality_level.video_codec == "vvc":
+                self.video_frame_info = ffmpeg.get_video_frame_info(self, info_type="frame")
+            else:
+                self.video_frame_info = ffmpeg.get_video_frame_info(self)
         return self.video_frame_info
 
     def get_audio_frame_info(self):

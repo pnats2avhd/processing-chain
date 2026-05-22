@@ -108,7 +108,6 @@ def run(cli_args, test_config=None):
                 cleaned_framesizes.extend(segment_framesizes)
             elif segment_codec == "vvc":
                 segment_framesizes = get_framesize.get_framesize_vvc(*get_framesize_args)
-                get_framesize.delete_packets_vvc(pvs_vfi, len(segment_framesizes))
                 cleaned_framesizes.extend(segment_framesizes)
             else:
                 logger.error("Invalid codec")
