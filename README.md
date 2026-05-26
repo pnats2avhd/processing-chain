@@ -2,7 +2,7 @@
 
 This is the processing chain used to generate sequences for the P.NATS Phase 2 / AHVD-AS project from ITU-T SG12 and VQEG.
 
-> ⚠️ **Note:** For this release, the versions of ffmpeg, x264, x265 and libvpx-vp9 are rather old. The [updates](https://github.com/pnats2avhd/processing-chain/tree/updates) branch uses up-to-date versions of those tools; the current software is published "as is" in order to match exactly what was used in the project.
+> ⚠️ **Note:** This is an updated version of the chain using the newest dependencies from Ubuntu 24.04, and ffmpeg 7.0. It does not reflect what was used in the project at the time. To use that instead, please switch to the `pnats_ph2` branch.
 
 Table of contents:
 
@@ -25,24 +25,34 @@ The processing chain is capable of taking in raw video, and producing the follow
 
 It can encode video with:
 
-- H.264/MPEG-4 Part 10 (x264)
-- H.265/MPEG-H Part 2 (x265)
+- H.264/MPEG-4 Part 10 (x264, and optionally nvenc)
+- H.265/MPEG-H Part 2 (x265, and optionally nvenc)
 - VP9 (libvpx-vp9)
+- AV1 (libaom-av1)
 
 ## Installation
 
 You need:
 
-- Python 3.x (tested with Python 3.5)
-- Linux (tested with Ubuntu 16.04)
-- `apt install libssl-dev`
+- Python 3.8 (also testet with Python 3.11)
+- Linux (tested with Ubuntu 24.04)
 - The `ffmpeg` and `ffprobe` binaries placed in your `$PATH`
+- uv <https://docs.astral.sh/uv/getting-started/installation/>
+  
+We have chosen `uv` to take care of version requirements and dealing with environments. It is (probably) possible to run this with pipenv, pip, etc. as well but this has not been as thoroughly tested. It is also possible to run this on MacOS directly, but that is also not officially supported and tested. 
 
 Install the current Python package requirements by running:
 
-    pip3 install --user -r requirements.txt
+```
+uv python install 3.11
+uv init
+uv add -r requirements.txt
+uv sync
+uv lock
+```
 
-Due to the somewhat outdated dependencies, we recommend using Docker to simplify the requirement installation.
+If you want to use the nvenc options for h264 and h265, using the docker-options are recommended to make sure 
+that matching versions for cuda etc. is installed.  
 
 ## Test configuration
 
@@ -86,11 +96,11 @@ git clone https://github.com/pnats2avhd/example-databases
 To run the processing chain, find the individual command usage here:
 
 ```
-./p00_processAll.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
-./p01_generateSegments.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
-./p02_generateMetadata.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
-./p03_generateAvPvs.py -c TEST_CONFIG [-fvnphrs|--filter-src|--filter-hrc|--filter-pvs|--spinner-path]
-./p04_generateCpvs.py -c TEST_CONFIG [-fvnphre|--filter-src|--filter-hrc|--filter-pvs|--preview-enc]
+uv run ./p00_processAll.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
+uv run ./p01_generateSegments.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
+uv run ./p02_generateMetadata.py -c TEST_CONFIG [-fvnphr|--filter-src|--filter-hrc|--filter-pvs]
+uv run ./p03_generateAvPvs.py -c TEST_CONFIG [-fvnphrs|--filter-src|--filter-hrc|--filter-pvs|--spinner-path]
+uv run ./p04_generateCpvs.py -c TEST_CONFIG [-fvnphre|--filter-src|--filter-hrc|--filter-pvs|--preview-enc]
 ```
 
 The arguments common to all scripts are:
@@ -121,7 +131,6 @@ Some scripts have unique arguments:
 See  `docker/README.md` for more info.
 
 ## Acknowledgement
-
 If you use this software in your research and/or for publications, please link back to the URL of this repository.  
 
 Here is a suggested citation in BibTeX format
@@ -129,11 +138,10 @@ Here is a suggested citation in BibTeX format
 ```BiBTex
 @misc{pnats_processing_chain,
   author="Robitza, Werner and Lindero, David and Borer, Silvio and Satti, Shahid and Göring, Steve and Müller, Martin and Ramachandra Rao, Rakesh Rao",
-  title="AVHD-AS / P.NATS Phase 2 Processing Chain",
+  title="Video Degradation Processing Chain",
   year=2020,
   url=https://github.com/pnats2avhd/processing-chain/,
-  note = "[Online; accessed 2020-10-08]"
-}
+  note = "[Online; accessed 2021-04-28]"
 ```
 
 ## Contributors
@@ -169,11 +177,3 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-Bundled dependencies are licensed under different licenses:
-
-- fdk-aac: Licensed according to the bundled license, see `NOTICE` in `docker/fdk-aac.tar.gz`
-- ffmpeg: Licensed according to GNU Lesser General Public License version 2.1 or later (LGPL v2.1+) and GNU General Public License version 2 or later (GPL v2+).
-- libvpx: Licensed according to the bundled license, see `LICENSE` in `docker/libvpx-1.6.1.tar.gz`
-- x264: Licensed according to GNU General Public License v2.0.
-- x265: Licensed according to GNU General Public License v2.0.

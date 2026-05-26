@@ -62,7 +62,8 @@ def run(cli_args, test_config=None):
                 pvs,
                 post_processing,
                 rawvideo=cli_args.rawvideo,
-                overwrite=cli_args.force
+                overwrite=cli_args.force,
+                nonraw_crf=cli_args.nonraw_crf
             )
             cmd_runner.add_cmd(cmd, name=str(pvs_name))
 
