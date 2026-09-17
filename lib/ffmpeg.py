@@ -86,10 +86,12 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
     # if segment.video_coding.forced_pix_fmt:
     #     pix_fmt = segment.video_coding.forced_pix_fmt
 
-    # get target FPS
+    # get target FPS (exact rational). None means "keep source rate".
     _, target_fps = _get_fps(segment)
     if target_fps is None:
-        target_fps = segment.src.get_fps()
+        target_fps = Fraction(segment.src.stream_info["r_frame_rate"])
+    else:
+        target_fps = Fraction(target_fps)
 
     # optional settings
     preset = segment.video_coding.preset
@@ -141,7 +143,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
 
         # keyframe interval
         if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
+            target_interval = int(round(target_fps * iframe_interval))
             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
 
         x264_params = []
@@ -202,7 +204,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
 
         # keyframe interval
         if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
+            target_interval = int(round(target_fps * iframe_interval))
             if encoder == 'libx265':
                 x265_params.append("keyint=" + str(target_interval))
                 x265_params.append("min-keyint=" + str(target_interval))
@@ -255,7 +257,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
 
         # keyframe interval
         if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
+            target_interval = int(round(target_fps * iframe_interval))
             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
         else:
             iframe_interval_cmd = ""
@@ -291,7 +293,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
 
         # keyframe interval
         if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
+            target_interval = int(round(target_fps * iframe_interval))
             iframe_interval_cmd = "-g " + str(target_interval) + " -keyint_min " + str(target_interval)
         else:
             iframe_interval_cmd = ""
@@ -329,7 +331,7 @@ def _get_video_encoder_command(segment, current_pass=1, total_passes=1, logfile=
 
         # keyframe interval
         if iframe_interval:
-            target_interval = int(target_fps * iframe_interval)
+            target_interval = int(round(target_fps * iframe_interval))
             iframe_interval_cmd = "-g " + str(target_interval)
         else:
             iframe_interval_cmd = ""
@@ -365,9 +367,27 @@ def _get_fps(segment):
     - the string "auto"
     - the string "50/60"
     - the string "24/25/30"
+
+    Returns a tuple (fps_cmd, fps):
+    - fps is an exact ``fractions.Fraction`` for the target frame rate, or
+      ``None`` when the source frame rate is to be kept unchanged
+      ("original" / "auto", or an SRC-adaptive spec whose source already
+      matches). Keeping the value exact (a rational, not a float) avoids the
+      rounding drift that made encoded segments end up with a different frame
+      count/cadence than their source (which in turn broke frame-accurate
+      metrics like VMAF on non-integer-fps sources such as 59.94 or 60.00024).
+    - fps_cmd is ``None`` when no fps filter should be applied, otherwise an
+      exact ``"fps=fps=<num>/<den>"`` filter string.
     """
     fps_spec = segment.quality_level.fps
     fps = None
+
+    # exact source frame rate as a rational (e.g. 60000/1001 for 59.94)
+    orig_fps_frac = Fraction(segment.src.stream_info["r_frame_rate"])
+    # nearest integer nominal rate, used only to *classify* the source for the
+    # SRC-adaptive specs below (so 59.94 counts as 60, 29.97 as 30, 23.976 as
+    # 24). The emitted fps itself always stays exact.
+    orig_fps_nominal = int(round(float(orig_fps_frac)))
 
     # keep the original framerate
     if fps_spec == "original":
@@ -379,53 +399,51 @@ def _get_fps(segment):
 
     # handle special case where FPS are to be selected from SRC framerate
     elif (fps_spec == "24/25/30"):
-        orig_fps = segment.src.get_fps()
-
-        # if the SRC is between 24 and 30, just take it as-is
-        if orig_fps in [24, 25, 30]:
+        # classify by nominal rate so NTSC-fractional sources are accepted too
+        if orig_fps_nominal in [24, 25, 30]:
             fps = None
-        # if the SRC is 50/60 we take half of it:
-        elif orig_fps == 50:
-            fps = 25
-        elif orig_fps in [60, 120]:
-            fps = 30
+        # if the SRC is 50 we take half of it:
+        elif orig_fps_nominal == 50:
+            fps = orig_fps_frac / 2
+        elif orig_fps_nominal in [60, 120]:
+            fps = orig_fps_frac / 2 if orig_fps_nominal == 60 else orig_fps_frac / 4
         else:
-            logger.error("SRC " + str(segment.src) + " has unsupported frame rate (" + str(orig_fps) + ")")
+            logger.error("SRC " + str(segment.src) + " has unsupported frame rate (" + str(float(orig_fps_frac)) + ")")
             sys.exit(1)
 
     # handle special case where FPS are to be selected from SRC framerate
     elif fps_spec == "50/60":
-        orig_fps = segment.src.get_fps()
-
-        if orig_fps in [50, 60]:
+        if orig_fps_nominal in [50, 60]:
             fps = None
-        elif orig_fps < 50:
-            logger.error("fps for " + str(segment) + " were requested as 50/60 but SRC has only " + str(orig_fps))
+        elif orig_fps_nominal < 50:
+            logger.error("fps for " + str(segment) + " were requested as 50/60 but SRC has only " + str(float(orig_fps_frac)))
             sys.exit(1)
-        elif orig_fps == 120:
-            fps = 60
+        elif orig_fps_nominal == 120:
+            fps = orig_fps_frac / 2
         else:
-            logger.error("SRC " + str(segment.src) + " has unsupported frame rate (" + str(orig_fps) + ")")
+            logger.error("SRC " + str(segment.src) + " has unsupported frame rate (" + str(float(orig_fps_frac)) + ")")
             sys.exit(1)
 
-    # use a given fraction (e.g. 2/3) of the original
+    # use a given fraction (e.g. 1/2) of the original, kept EXACT as a rational
     elif "/" in str(fps_spec):
         frac = Fraction(fps_spec)
-        orig_fps_frac = Fraction(segment.src.stream_info["r_frame_rate"])
-        fps = float(orig_fps_frac * frac)
+        fps = orig_fps_frac * frac
         # sanity check:
-        if (fps > 60) or (fps < 12):
-            logger.warn("fps for " + str(segment) + " were calculated as " + str(fps) + " which does not seem right")
+        if (float(fps) > 60) or (float(fps) < 12):
+            logger.warn("fps for " + str(segment) + " were calculated as " + str(float(fps)) + " which does not seem right")
 
     # just take the specific FPS value, e.g. 15
     else:
-        fps = int(fps_spec)
+        fps = Fraction(int(fps_spec))
 
-    # construct the ffmpeg command, either none (take FPS as-is) or use the "fps" filter
+    # construct the ffmpeg command, either none (take FPS as-is) or use the
+    # "fps" filter with an EXACT rational (num/den) so ffmpeg reproduces the
+    # intended cadence without float rounding drift.
     if fps is None:
         fps_cmd = None
     else:
-        fps_cmd = "fps=fps=" + str(fps)
+        fps = Fraction(fps)
+        fps_cmd = "fps=fps=" + str(fps.numerator) + "/" + str(fps.denominator)
 
     return (fps_cmd, fps)
 
@@ -847,40 +865,49 @@ def encode_segment(segment, overwrite=False):
 
     # FPS handling
     (fps_cmd, calculated_fps) = _get_fps(segment)
-    orig_fps = float(Fraction(segment.src.stream_info["r_frame_rate"]))
+    orig_fps_frac = Fraction(segment.src.stream_info["r_frame_rate"])
 
     if fps_cmd:
-        fps_perc = 100 * calculated_fps / orig_fps
-        if int(fps_perc) != 100:
-            adv_select = ''
+        # ratio of target to source frame rate, kept EXACT (a Fraction) so the
+        # decimation pattern is selected deterministically and does not depend
+        # on floating-point rounding of a percentage (which mis-keyed and even
+        # crashed for NTSC sources such as 23.976).
+        ratio = Fraction(calculated_fps) / orig_fps_frac
 
-            if int(fps_perc) == 50:  # fps 60->30, 24->12
-                adv_select = "mod(n+1,2)"
-            elif int(fps_perc) == 40:  # fps 60->24
-                adv_select = "not(mod(n,5))+not(mod(n-3,5))"
-            elif int(fps_perc) == 33:  # fps 60->20, 24->8
-                adv_select = "not(mod(n,3))"
-            elif int(fps_perc) == 25:  # fps 60->15, 24->6
-                adv_select = "not(mod(n,4))"
-            elif int(fps_perc) == 80:  # # fps 30->24, this usually does not look good
-                adv_select = "mod(n+1,5)"
-            elif int(fps_perc) == 30:  # fps 50->15
-                adv_select = "not(mod(n,10)) + not(mod(n-3,10)) + not(mod(n-7,10))"
-            elif int(fps_perc) == 60:  # fps 25->15
-                adv_select = "not(mod(n,5))+not(mod(n-3,5))+not(mod(n-2,5))"
-            elif fps_perc == 62.5:  # fps 24->15
-                adv_select = "not(mod(n,8))+not(mod(n-3,8))+not(mod(n-2,8))+not(mod(n-5,8))+not(mod(n-6,8))"
-            else:
-                logger.error("Frame rate conversion from " + str(orig_fps) + " to " + str(calculated_fps) + " is not supported in segment " + str(segment))
+        if ratio != 1:
+            # Map an exact down-sampling ratio to the interlace-safe frame
+            # selection pattern. Keys are the target/source ratio.
+            select_map = {
+                Fraction(1, 2): "mod(n+1,2)",                        # 60->30, 24->12
+                Fraction(2, 5): "not(mod(n,5))+not(mod(n-3,5))",     # 60->24
+                Fraction(1, 3): "not(mod(n,3))",                     # 60->20, 24->8
+                Fraction(1, 4): "not(mod(n,4))",                     # 60->15, 24->6
+                Fraction(4, 5): "mod(n+1,5)",                        # 30->24
+                Fraction(3, 10): "not(mod(n,10)) + not(mod(n-3,10)) + not(mod(n-7,10))",  # 50->15
+                Fraction(3, 5): "not(mod(n,5))+not(mod(n-3,5))+not(mod(n-2,5))",           # 25->15
+                Fraction(5, 8): "not(mod(n,8))+not(mod(n-3,8))+not(mod(n-2,8))+not(mod(n-5,8))+not(mod(n-6,8))",  # 24->15
+            }
+            adv_select = select_map.get(ratio)
+            if adv_select is None:
+                logger.error("Frame rate conversion from " + str(float(orig_fps_frac)) +
+                             " to " + str(float(calculated_fps)) + " (ratio " + str(ratio) +
+                             ") is not supported in segment " + str(segment))
                 sys.exit(1)
 
             filter_list.append("select=\'" + adv_select + "\'")
-        filter_list.append("fps=fps=" + str(calculated_fps))    
+        filter_list.append(fps_cmd)
     else:
-        filter_list.append("fps=fps=" + str(orig_fps))
+        # "original" / "auto": keep the source cadence exactly. Do NOT append an
+        # fps filter — resampling to a (possibly non-integer) CFR here caused the
+        # encoded segment to drift from the source frame count on real-world
+        # sources, breaking frame-accurate metrics like VMAF.
+        pass
 
-    filters = ",".join(filter_list)
-    filters = "\"" + filters + "\""
+    if filter_list:
+        filters = ",".join(filter_list)
+        filters = "\"" + filters + "\""
+    else:
+        filters = ""
 
     # Audio coding (only for long tests)
     if test_config.type == "long":
